@@ -1,6 +1,9 @@
 import express, { Application, Request, Response, NextFunction } from "express";
 import cors from "cors";
 import testRoutes from "./routes/test.routes";
+import authRoutes from "./routes/auth.routes";
+import adminRoutes from "./routes/admin.routes";
+import resultsRoutes from "./routes/results.routes";
 
 const app: Application = express();
 
@@ -40,6 +43,10 @@ app.use(
     }),
 );
 
+// Routes
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/results", resultsRoutes);
 app.use("/api/v1/tests", testRoutes);
 
 app.get("/", (req: Request, res: Response) => {

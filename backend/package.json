@@ -14,11 +14,19 @@
         "telegraf": "^4.16.3",
         "cors": "^2.8.6",
         "dotenv": "^17.4.2",
-        "express": "^5.2.1"
+        "express": "^5.2.1",
+        "pg": "^8.11.3",
+        "uuid": "^9.0.1",
+        "jsonwebtoken": "^9.1.2",
+        "bcryptjs": "^2.4.3"
     },
     "devDependencies": {
         "@types/cors": "^2.8.19",
         "@types/express": "^5.0.6",
+        "@types/node": "^20.10.5",
+        "@types/pg": "^8.11.3",
+        "@types/jsonwebtoken": "^9.0.7",
+        "@types/bcryptjs": "^2.4.6",
         "ts-node-dev": "^2.0.0",
         "typescript": "^6.0.3"
     },
