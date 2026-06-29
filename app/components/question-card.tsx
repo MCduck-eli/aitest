@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5500";
+import { API_BASE_URL } from "../../lib/api";
 
 interface Question {
     id: number;

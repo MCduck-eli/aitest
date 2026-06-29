@@ -5,9 +5,7 @@ import LessonSelector from "./components/lesson-selector";
 import QuestionCard from "./components/question-card";
 import ExamResult from "./components/exam-result";
 import AIOrb from "./components/AI-orb";
-
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5500";
+import { API_BASE_URL } from "../lib/api";
 
 export default function AIPage() {
     const [studentName] = useState("Eldor Abdukhalikov");
