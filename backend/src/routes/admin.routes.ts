@@ -10,12 +10,16 @@ import {
     getQuestions,
     updateQuestion,
     deleteQuestion,
+    createAdminUser,
 } from '../controllers/admin.controller';
 
 const router = Router();
 
-// All admin routes require authentication and admin/teacher role
-router.use(authMiddleware, requireRole(['admin', 'teacher']));
+// All admin routes require authentication and admin/teacher/super_admin role
+router.use(authMiddleware, requireRole(['admin', 'teacher', 'super_admin']));
+
+// Super admin can create other admins/teachers
+router.post('/users', requireRole(['super_admin']), createAdminUser);
 
 // Test Bank routes
 router.post('/tests', createTestBank);

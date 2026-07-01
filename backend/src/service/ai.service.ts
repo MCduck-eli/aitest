@@ -95,7 +95,7 @@ QOIDABUZARLIK TURLARI:
 6. external_help — yon tomondan yordam, ko'rsatib turish, birga javob yozish, qo'l yoki barmoq bilan ishora, yon tomondan suhbat
 7. reading_material — qog'oz, daftar, kitob, varaq, qo'l/yoqa ustidagi yozuvlardan o'qish
 8. screen_copy — monitor, televizor, ikkinchi ekrandan o'qish, ekran yonida nusxa ko'chirish harakati
-9. looking_away — bosh uzun vaqt ekrandan uzoq tomonga burilgan (eslatma yoki yordam olish belgisi)
+9. looking_away — ko'zlar ekrandan uzoqlashgan, bosh o'ng/chapga yoki pastga burilgan, yuz ekrandan uzoq tomonga qaratilgan; agar ko'zlar 2-3 soniya davomida ekrandan uzilgan bo'lsa, bu yuqori ishonch bilan looking_away deb belgilang.
 
 QATTIQ QOIDALAR:
 - Telefon qisman ko'rinsa ham phone deb belgilang. Agar telefon ko'rinsa, hatto kichik bo'lsa ham qoldirmang.
@@ -246,6 +246,58 @@ export const evaluateFullExam = async (examHistory: any) => {
             status: "error",
             message: "Baholashni amalga oshirib bo'lmadi",
         };
+    }
+};
+
+export const generateQuestionsFromScript = async (
+    lessonScript: string,
+    subject?: string,
+    studyGroup?: string,
+) => {
+    try {
+        const response = await groqClient.chat.completions.create({
+            model: GROQ_MODEL,
+            messages: [
+                {
+                    role: "system",
+                    content: `Siz professional o'qituvchisi va test muallifisiz. Quyidagi dars skripti asosida ${subject || "fan"} bo'yicha ${studyGroup || "guruh"} uchun test savollarini yarating.
+Qoidalar:
+- Savollar faqat o'zbek tilida bo'lsin.
+- Har bir savol uchun 4 ta javob variant bering.
+- Faqat bitta to'g'ri javob bo'lsin.
+- Savollar oddiy, aniq va dars skripti mazmuniga mos bo'lsin.
+- Javobni faqat JSON formatida qaytaring.
+{
+  "questions": [
+    {
+      "question_text": "Savol matni",
+      "question_type": "multiple_choice",
+      "difficulty_level": "easy",
+      "options": [
+        { "text": "A variant", "isCorrect": false },
+        { "text": "B variant", "isCorrect": true },
+        { "text": "C variant", "isCorrect": false },
+        { "text": "D variant", "isCorrect": false }
+      ]
+    }
+  ]
+}`,
+                },
+                {
+                    role: "user",
+                    content: `Dars skripti:\n${lessonScript}`,
+                },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.2,
+        });
+
+        const content = response.choices[0].message.content || '{"questions": []}';
+        const parsed = JSON.parse(content);
+        return Array.isArray(parsed.questions) ? parsed.questions : [];
+    } catch (error) {
+        console.error("Skriptdan savol generatsiya xatosi:", error);
+        return [];
     }
 };
 

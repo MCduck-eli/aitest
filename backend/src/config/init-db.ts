@@ -1,4 +1,5 @@
 import { query } from '../config/database';
+import { hashPassword } from '../utils/auth';
 
 export const initializeDatabase = async (): Promise<void> => {
     console.log('🔄 Initializing database...');
@@ -25,7 +26,7 @@ export const initializeDatabase = async (): Promise<void> => {
         await query(`
             CREATE TABLE IF NOT EXISTS users (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                training_center_id UUID NOT NULL REFERENCES training_centers(id) ON DELETE CASCADE,
+                training_center_id UUID NULL REFERENCES training_centers(id) ON DELETE CASCADE,
                 email VARCHAR(255) NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
                 full_name VARCHAR(255) NOT NULL,
@@ -33,8 +34,29 @@ export const initializeDatabase = async (): Promise<void> => {
                 is_active BOOLEAN DEFAULT true,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(training_center_id, email)
+                UNIQUE(training_center_id, email),
+                UNIQUE(email)
             );
+        `);
+
+        await query(`
+            ALTER TABLE users
+            ALTER COLUMN training_center_id DROP NOT NULL;
+        `);
+
+        await query(`
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS subject VARCHAR(255);
+        `);
+
+        await query(`
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS study_group VARCHAR(255);
+        `);
+
+        await query(`
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS lesson_script TEXT;
         `);
 
         // Test Banks (Exams/Tests)
@@ -153,6 +175,22 @@ export const initializeDatabase = async (): Promise<void> => {
         await query(`CREATE INDEX IF NOT EXISTS idx_exam_results_test_bank ON exam_results(test_bank_id);`);
         await query(`CREATE INDEX IF NOT EXISTS idx_exam_results_student ON exam_results(student_id);`);
         await query(`CREATE INDEX IF NOT EXISTS idx_violations_exam_result ON proctoring_violations(exam_result_id);`);
+
+        const masterAdminEmail = process.env.MASTER_ADMIN_EMAIL?.trim() || 'superadmin@aitest.com';
+        const masterAdminPassword = process.env.MASTER_ADMIN_PASSWORD?.trim() || 'SuperAdmin123!';
+        const masterAdminName = process.env.MASTER_ADMIN_NAME?.trim() || 'Main Administrator';
+        const masterAdminPasswordHash = await hashPassword(masterAdminPassword);
+
+        await query(
+            `INSERT INTO users (email, password_hash, full_name, role, is_active)
+             VALUES ($1::varchar, $2::varchar, $3::varchar, 'super_admin', true)
+             ON CONFLICT (email) DO UPDATE SET
+                 password_hash = EXCLUDED.password_hash,
+                 full_name = EXCLUDED.full_name,
+                 role = EXCLUDED.role,
+                 is_active = EXCLUDED.is_active;`,
+            [masterAdminEmail, masterAdminPasswordHash, masterAdminName],
+        );
 
         console.log('✅ Database initialized successfully!');
     } catch (error) {

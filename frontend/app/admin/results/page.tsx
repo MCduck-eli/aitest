@@ -25,7 +25,7 @@ export default function ResultsPage() {
 
     const fetchTests = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/admin/tests`, {
+            const response = await fetch(`${API_BASE_URL}/api/v1/admin/tests`, {
                 headers: { 'Authorization': `Bearer ${token}` },
             });
 
@@ -45,7 +45,7 @@ export default function ResultsPage() {
     const fetchResults = async (testId: string) => {
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/results/tests/${testId}/results`, {
+            const response = await fetch(`${API_BASE_URL}/api/v1/results/tests/${testId}/results`, {
                 headers: { 'Authorization': `Bearer ${token}` },
             });
 
@@ -78,19 +78,19 @@ export default function ResultsPage() {
 
     return (
         <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Exam Results</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-8">Imtihon natijalari</h1>
 
             {/* Test Selector */}
             <div className="mb-8">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Test
+                    Testni tanlang
                 </label>
                 <select
                     value={selectedTest}
                     onChange={(e) => handleTestSelect(e.target.value)}
                     className="px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                 >
-                    <option value="">-- Choose a test --</option>
+                    <option value="">-- Test tanlang --</option>
                     {tests.map((test) => (
                         <option key={test.id} value={test.id}>
                             {test.title} ({test.total_questions} questions)
@@ -105,22 +105,22 @@ export default function ResultsPage() {
                     {statistics && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                             <StatCard
-                                title="Total Attempts"
+                                title="Jami urinishlar"
                                 value={statistics.total_attempts}
                                 color="bg-blue-500"
                             />
                             <StatCard
-                                title="Passed"
+                                title="O\'tdi"
                                 value={statistics.passed_count}
                                 color="bg-green-500"
                             />
                             <StatCard
-                                title="Failed"
+                                title="O\'tmadi"
                                 value={statistics.failed_count}
                                 color="bg-red-500"
                             />
                             <StatCard
-                                title="Avg Score"
+                                title="O\'rtacha ball"
                                 value={`${statistics.average_score}%`}
                                 color="bg-purple-500"
                             />
@@ -134,22 +134,22 @@ export default function ResultsPage() {
                                 <thead className="bg-gray-50 border-b">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
-                                            Student Name
+                                            O\'quvchi ismi
                                         </th>
                                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
-                                            Email
+                                            Elektron pochta
                                         </th>
                                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
                                             Score
                                         </th>
                                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
-                                            Status
+                                            Holat
                                         </th>
                                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
-                                            Violations
+                                            Qoidabuzarliklar
                                         </th>
                                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
-                                            Date
+                                            Sana
                                         </th>
                                         <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
                                             Action
@@ -200,7 +200,7 @@ export default function ResultsPage() {
                                                     }
                                                     className="text-blue-600 hover:text-blue-700 font-medium"
                                                 >
-                                                    View Details
+                                                    Tafsilotlar
                                                 </button>
                                             </td>
                                         </tr>
@@ -211,7 +211,7 @@ export default function ResultsPage() {
 
                         {results.length === 0 && (
                             <div className="text-center py-12 text-gray-600">
-                                <p className="text-lg">No results yet for this test</p>
+                                <p className="text-lg">Bu test uchun hali natijalar yo\'q</p>
                             </div>
                         )}
                     </div>

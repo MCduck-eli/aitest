@@ -5,6 +5,28 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
 
+function NavLink({
+    href,
+    icon,
+    label,
+    open,
+}: {
+    href: string;
+    icon: string;
+    label: string;
+    open: boolean;
+}) {
+    return (
+        <Link
+            href={href}
+            className="flex items-center p-4 hover:bg-gray-700 transition-colors duration-200"
+        >
+            <span className="text-2xl">{icon}</span>
+            {open && <span className="ml-4 text-lg">{label}</span>}
+        </Link>
+    );
+}
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const { logout, user } = useAuthStore();
@@ -33,25 +55,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <NavLink
                         href="/admin/dashboard"
                         icon="📊"
-                        label="Dashboard"
+                        label="Asosiy panel"
                         open={sidebarOpen}
                     />
                     <NavLink
                         href="/admin/tests"
                         icon="📝"
-                        label="Tests"
+                        label="Testlar"
                         open={sidebarOpen}
                     />
                     <NavLink
                         href="/admin/results"
                         icon="📈"
-                        label="Results"
+                        label="Natijalar"
                         open={sidebarOpen}
                     />
                     <NavLink
                         href="/admin/settings"
                         icon="⚙️"
-                        label="Settings"
+                        label="Sozlamalar"
                         open={sidebarOpen}
                     />
                 </nav>
@@ -75,7 +97,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 onClick={handleLogout}
                                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                             >
-                                Logout
+                                Chiqish
                             </button>
                         </div>
                     </div>
@@ -85,28 +107,5 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <main className="flex-1 overflow-y-auto p-6">{children}</main>
             </div>
         </div>
-    );
-}
-
-function NavLink({
-    href,
-    icon,
-    label,
-    open,
-}: {
-    href: string;
-    icon: string;
-    label: string;
-    open: boolean;
-}) {
-    return (
-        <Link
-            href={href}
-            className="flex items-center gap-4 px-4 py-3 hover:bg-gray-800 transition"
-            title={open ? '' : label}
-        >
-            <span className="text-xl">{icon}</span>
-            {open && <span>{label}</span>}
-        </Link>
     );
 }

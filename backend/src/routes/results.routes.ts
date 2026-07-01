@@ -12,8 +12,8 @@ const router = Router();
 router.use(authMiddleware);
 
 // Results routes
-router.get('/tests/:testId/results', requireRole(['admin', 'teacher']), getTestResults);
-router.get('/results/:resultId', requireRole(['admin', 'teacher']), getResultDetail);
-router.get('/dashboard/analytics', getDashboardAnalytics);
+router.get('/tests/:testId/results', requireRole(['admin', 'teacher', 'super_admin']), getTestResults);
+router.get('/results/:resultId', requireRole(['admin', 'teacher', 'super_admin']), getResultDetail);
+router.get('/dashboard/analytics', requireRole(['admin', 'teacher', 'super_admin']), getDashboardAnalytics);
 
 export default router;

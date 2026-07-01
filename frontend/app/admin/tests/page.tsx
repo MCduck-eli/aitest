@@ -30,7 +30,7 @@ export default function TestsPage() {
 
     const fetchTests = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/admin/tests`, {
+            const response = await fetch(`${API_BASE_URL}/api/v1/admin/tests`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -53,7 +53,7 @@ export default function TestsPage() {
         e.preventDefault();
 
         try {
-            const response = await fetch(`${API_BASE_URL}/admin/tests`, {
+            const response = await fetch(`${API_BASE_URL}/api/v1/admin/tests`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -84,7 +84,7 @@ export default function TestsPage() {
     const handleDeleteTest = async (testId: string) => {
         if (confirm('Are you sure you want to delete this test?')) {
             try {
-                const response = await fetch(`${API_BASE_URL}/admin/tests/${testId}`, {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/tests/${testId}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -114,23 +114,23 @@ export default function TestsPage() {
     return (
         <div>
             <div className="flex items-center justify-between mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Tests</h1>
+                <h1 className="text-3xl font-bold text-gray-900">Testlar</h1>
                 <button
                     onClick={() => setShowForm(!showForm)}
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
-                    {showForm ? 'Cancel' : '+ Create Test'}
+                    {showForm ? 'Bekor qilish' : '+ Test yaratish'}
                 </button>
             </div>
 
             {showForm && (
                 <div className="bg-white rounded-lg shadow p-6 mb-8">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">Create New Test</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Yangi test yaratish</h2>
                     <form onSubmit={handleCreateTest}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <input
                                 type="text"
-                                placeholder="Test Title"
+                                placeholder="Test nomi"
                                 value={formData.title}
                                 onChange={(e) =>
                                     setFormData({ ...formData, title: e.target.value })
@@ -141,7 +141,7 @@ export default function TestsPage() {
 
                             <input
                                 type="text"
-                                placeholder="Subject (e.g., Mathematics)"
+                                placeholder="Fan (masalan: Matematika)"
                                 value={formData.subject}
                                 onChange={(e) =>
                                     setFormData({ ...formData, subject: e.target.value })
@@ -151,7 +151,7 @@ export default function TestsPage() {
 
                             <input
                                 type="number"
-                                placeholder="Duration (minutes)"
+                                placeholder="Davomiyligi (daqiqa)"
                                 value={formData.duration_minutes}
                                 onChange={(e) =>
                                     setFormData({
@@ -165,7 +165,7 @@ export default function TestsPage() {
 
                             <input
                                 type="number"
-                                placeholder="Passing Score (%)"
+                                placeholder="O\'tish bali (%)"
                                 value={formData.passing_score}
                                 onChange={(e) =>
                                     setFormData({
@@ -179,7 +179,7 @@ export default function TestsPage() {
                         </div>
 
                         <textarea
-                            placeholder="Description"
+                            placeholder="Tavsif"
                             value={formData.description}
                             onChange={(e) =>
                                 setFormData({ ...formData, description: e.target.value })
@@ -192,7 +192,7 @@ export default function TestsPage() {
                             type="submit"
                             className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                         >
-                            Create Test
+                            Test yaratish
                         </button>
                     </form>
                 </div>
@@ -210,16 +210,16 @@ export default function TestsPage() {
 
                         <div className="space-y-2 mb-4 text-sm text-gray-700">
                             <p>
-                                <span className="font-medium">Subject:</span> {test.subject || 'N/A'}
+                                <span className="font-medium">Fan:</span> {test.subject || 'Yo\'q'}
                             </p>
                             <p>
-                                <span className="font-medium">Duration:</span> {test.duration_minutes} min
+                                <span className="font-medium">Davomiyligi:</span> {test.duration_minutes} daq
                             </p>
                             <p>
-                                <span className="font-medium">Questions:</span> {test.total_questions}
+                                <span className="font-medium">Savollar:</span> {test.total_questions}
                             </p>
                             <p>
-                                <span className="font-medium">Pass Score:</span> {test.passing_score}%
+                                <span className="font-medium">O\'tish bali:</span> {test.passing_score}%
                             </p>
                         </div>
 
@@ -228,13 +228,13 @@ export default function TestsPage() {
                                 onClick={() => router.push(`/admin/tests/${test.id}/edit`)}
                                 className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
                             >
-                                Edit
+                                Tahrirlash
                             </button>
                             <button
                                 onClick={() => handleDeleteTest(test.id)}
                                 className="flex-1 px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
                             >
-                                Delete
+                                O\'chirish
                             </button>
                         </div>
                     </div>
@@ -243,7 +243,7 @@ export default function TestsPage() {
 
             {tests.length === 0 && (
                 <div className="text-center text-gray-600 py-12">
-                    <p className="text-lg">No tests yet. Create your first test!</p>
+                    <p className="text-lg">Hali testlar yo\'q. Birinchi testni yarating!</p>
                 </div>
             )}
         </div>

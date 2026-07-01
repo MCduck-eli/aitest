@@ -25,7 +25,7 @@ export default function ResultDetailPage() {
 
     const fetchResultDetail = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/results/results/${resultId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/v1/results/results/${resultId}`, {
                 headers: { 'Authorization': `Bearer ${token}` },
             });
 

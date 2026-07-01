@@ -243,7 +243,10 @@ export default function QuestionCard({
                 violationType === "looking_away" &&
                 confidence >= LOOKING_AWAY_CONFIDENCE
             ) {
-                registerViolation(reason, frame);
+                triggerForceFail(
+                    "Ko'zlaringiz ekranga qaratilmagan — imtihon to'xtatildi.",
+                    frame,
+                );
                 return;
             }
 
@@ -669,6 +672,10 @@ export default function QuestionCard({
                             setAnswer("");
                             lastAnswerLengthRef.current = 0;
                         } else {
+                            setWarning("😊 Kulib turing, rasmga olamiz...");
+                            setProctoringStatus(
+                                "😊 Kulib turing, rasmga olamiz...",
+                            );
                             const finalPhoto = takeSnapshot();
                             isExamActive.current = false;
                             stopMedia();

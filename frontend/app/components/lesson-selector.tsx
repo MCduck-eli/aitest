@@ -28,6 +28,8 @@ export default function LessonSelector({
     const [categories, setCategories] = useState<SubjectCategory[]>([]);
     const [selectedLesson, setSelectedLesson] = useState<number>(0);
     const [fetchError, setFetchError] = useState<string | null>(null);
+    const [showRules, setShowRules] = useState(false);
+    const [acceptedRules, setAcceptedRules] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -135,9 +137,12 @@ export default function LessonSelector({
                 )}
 
                 <button
-                    onClick={() =>
-                        selectedLesson !== 0 && onStartExam(selectedLesson)
-                    }
+                    onClick={() => {
+                        if (selectedLesson !== 0) {
+                            setAcceptedRules(false);
+                            setShowRules(true);
+                        }
+                    }}
                     disabled={
                         loading || syllabus.length === 0 || selectedLesson === 0
                     }
@@ -145,9 +150,80 @@ export default function LessonSelector({
                 >
                     {loading
                         ? "AI Imtihon tayyorlamoqda..."
-                        : "Imtihonni boshlash"}
+                        : "Qoidalar bilan boshlash"}
                 </button>
             </div>
+
+            {showRules && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4">
+                    <div className="w-full max-w-xl rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+                        <div className="mb-4">
+                            <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest">
+                                Imtihon qoidalari
+                            </span>
+                            <h3 className="text-xl font-semibold mt-1 text-slate-100">
+                                Boshlashdan oldin diqqat bilan o‘qing
+                            </h3>
+                        </div>
+
+                        <ul className="space-y-3 text-sm text-slate-300 mb-5">
+                            <li className="flex gap-3">
+                                <span className="text-cyan-400 mt-1">•</span>
+                                <span>Kamera va mikrofon ruxsatini berishingiz kerak.</span>
+                            </li>
+                            <li className="flex gap-3">
+                                <span className="text-cyan-400 mt-1">•</span>
+                                <span>Imtihon davomida ekranga qarash majburiy; boshqa tomonga uzoq qarasangiz avtomatik blok bo‘ladi.</span>
+                            </li>
+                            <li className="flex gap-3">
+                                <span className="text-cyan-400 mt-1">•</span>
+                                <span>Telefon, ikkinchi ekran, kitob, daftar, yordam beruvchi odam yoki boshqa shaxsdan ko‘mak olmaslik kerak.</span>
+                            </li>
+                            <li className="flex gap-3">
+                                <span className="text-cyan-400 mt-1">•</span>
+                                <span>Yordam olish uchun ovoz yoki boshqa vositalardan foydalanish taqiqlanadi.</span>
+                            </li>
+                            <li className="flex gap-3">
+                                <span className="text-cyan-400 mt-1">•</span>
+                                <span>Imtihon tugashi bilan rasm olingan bo‘ladi va natija Telegramga yuboriladi.</span>
+                            </li>
+                        </ul>
+
+                        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-800 bg-slate-950/40 mb-5">
+                            <input
+                                type="checkbox"
+                                checked={acceptedRules}
+                                onChange={(e) => setAcceptedRules(e.target.checked)}
+                                className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500"
+                            />
+                            <span className="text-sm text-slate-300">
+                                Men yuqoridagi qoidalarni o‘qib chiqdim va ular bilan roziman.
+                            </span>
+                        </label>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowRules(false)}
+                                className="flex-1 border border-slate-700 text-slate-300 py-2.5 rounded-xl hover:bg-slate-800"
+                            >
+                                Bekor qilish
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (acceptedRules) {
+                                        setShowRules(false);
+                                        onStartExam(selectedLesson);
+                                    }
+                                }}
+                                disabled={!acceptedRules}
+                                className="flex-1 bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-slate-800 disabled:to-slate-800 text-white font-medium py-2.5 rounded-xl transition-all"
+                            >
+                                Imtihonni boshlash
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

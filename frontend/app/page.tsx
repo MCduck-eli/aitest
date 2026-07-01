@@ -17,6 +17,7 @@ export default function AIPage() {
     const [aiResult, setAiResult] = useState<{
         score: number;
         feedback: string;
+        photoBase64?: string | null;
     } | null>(null);
 
     const handleStartExam = async (lessonId: number) => {
@@ -84,6 +85,7 @@ export default function AIPage() {
                     score: Number(evalData.finalScore) || 0,
                     feedback:
                         evalData.overallFeedback || "Baholash yakunlandi.",
+                    photoBase64: photoBase64 ?? null,
                 });
                 setStep("result");
             } else {
@@ -118,6 +120,7 @@ export default function AIPage() {
             setAiResult({
                 score: 0,
                 feedback: `Qoidabuzarlik: ${reason}`,
+                photoBase64: photoBase64 ?? null,
             });
             setStep("result");
         } catch (error) {
@@ -155,6 +158,7 @@ export default function AIPage() {
                     score={aiResult.score}
                     feedback={aiResult.feedback}
                     onRestart={handleRestart}
+                    photoBase64={aiResult.photoBase64 ?? null}
                 />
             )}
         </div>

@@ -1,7 +1,36 @@
+import { randomBytes } from 'crypto';
 import { Request, Response } from 'express';
-import { v4 as uuidv4 } from 'uuid';
 import { query } from '../config/database';
+import { generateQuestionsFromScript } from '../service/ai.service';
+import { hashPassword } from '../utils/auth';
 import { ApiResponse, TestBank, Question, AnswerOption } from '../types/models';
+
+const generatePassword = (length = 14): string => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
+    const bytes = randomBytes(length);
+    let password = '';
+
+    for (let i = 0; i < length; i += 1) {
+        password += chars[bytes[i] % chars.length];
+    }
+
+    return password;
+};
+
+const generateUniqueAdminEmail = async (fullName: string): Promise<string> => {
+    const baseSlug = fullName.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 24) || 'admin';
+    let email = `${baseSlug}@aitest.uz`;
+
+    let counter = 1;
+    while (true) {
+        const existing = await query('SELECT id FROM users WHERE email = $1', [email]);
+        if (existing.rows.length === 0) {
+            return email;
+        }
+        counter += 1;
+        email = `${baseSlug}${counter}@aitest.uz`;
+    }
+};
 
 // Create Test Bank
 export const createTestBank = async (
@@ -36,6 +65,106 @@ export const createTestBank = async (
     } catch (error: any) {
         console.error('Create test error:', error);
         res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+export const createAdminUser = async (
+    req: Request<{}, {}, { full_name: string; role?: 'admin' | 'teacher'; subject?: string; study_group?: string; lesson_script?: string }>,
+    res: Response<ApiResponse>,
+): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({ success: false, error: 'Not authenticated' });
+            return;
+        }
+
+        const { full_name, role = 'teacher', subject, study_group, lesson_script } = req.body;
+
+        if (!full_name?.trim()) {
+            res.status(400).json({ success: false, error: 'To\'liq ism majburiy' });
+            return;
+        }
+
+        if (!['admin', 'teacher'].includes(role)) {
+            res.status(400).json({ success: false, error: 'Roli faqat admin yoki teacher bo\'lishi kerak' });
+            return;
+        }
+
+        if (role === 'teacher' && (!subject?.trim() || !study_group?.trim() || !lesson_script?.trim())) {
+            res.status(400).json({ success: false, error: 'Teacher uchun fan, guruh va dars skripti majburiy' });
+            return;
+        }
+
+        const generatedEmail = await generateUniqueAdminEmail(full_name);
+        const generatedPassword = generatePassword();
+        const passwordHash = await hashPassword(generatedPassword);
+
+        const userResult = await query(
+            `INSERT INTO users (training_center_id, email, password_hash, full_name, role, subject, study_group, lesson_script)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             RETURNING id, email, full_name, role, training_center_id, subject, study_group, lesson_script`,
+            [req.user.trainingCenterId, generatedEmail, passwordHash, full_name.trim(), role, subject || null, study_group || null, lesson_script || null],
+        );
+
+        const createdUser = userResult.rows[0];
+        let createdTestBankId: string | null = null;
+
+        if (lesson_script?.trim()) {
+            try {
+                const generatedQuestions = await generateQuestionsFromScript(lesson_script, subject, study_group);
+
+                if (generatedQuestions?.length) {
+                    const title = `${subject || 'Umumiy fan'} - ${study_group || 'Guruh'} dars skripti`;
+                    const testResult = await query(
+                        `INSERT INTO test_banks (training_center_id, title, description, subject, duration_minutes, passing_score, created_by)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7)
+                         RETURNING id`,
+                        [req.user.trainingCenterId, title, lesson_script.slice(0, 1000), subject || null, 60, 60, req.user.userId],
+                    );
+
+                    createdTestBankId = testResult.rows[0].id;
+
+                    for (const q of generatedQuestions) {
+                        const questionResult = await query(
+                            `INSERT INTO questions (test_bank_id, question_text, question_type, difficulty_level, order_index)
+                             VALUES ($1, $2, $3, $4, $5)
+                             RETURNING id`,
+                            [createdTestBankId, q.question_text, q.question_type || 'multiple_choice', q.difficulty_level || 'medium', 0],
+                        );
+
+                        const questionId = questionResult.rows[0].id;
+
+                        for (let i = 0; i < q.options.length; i += 1) {
+                            await query(
+                                `INSERT INTO answer_options (question_id, option_text, is_correct, order_index)
+                                 VALUES ($1, $2, $3, $4)`,
+                                [questionId, q.options[i].text, Boolean(q.options[i].isCorrect), i],
+                            );
+                        }
+                    }
+
+                    await query(`UPDATE test_banks SET total_questions = $1 WHERE id = $2`, [generatedQuestions.length, createdTestBankId]);
+                }
+            } catch (quizError) {
+                console.error('AI generated questions failed:', quizError);
+            }
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'Yangi admin/teacher yaratildi. Login va parol avtomatik generatsiya qilindi.',
+            data: {
+                user: createdUser,
+                generated_credentials: {
+                    email: generatedEmail,
+                    password: generatedPassword,
+                },
+                created_test_bank_id: createdTestBankId,
+            },
+        });
+    } catch (error: any) {
+        console.error('Create admin user error:', error);
+        res.status(500).json({ success: false, error: error.message || 'Admin yaratishda xatolik' });
     }
 };
 

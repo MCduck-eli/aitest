@@ -1,15 +1,52 @@
+import { randomBytes } from 'crypto';
 import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { hashPassword, comparePassword, generateToken } from '../utils/auth';
 import { ApiResponse, User, UserPublic } from '../types/models';
+
+const slugify = (value: string): string => value.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 24) || 'center';
+
+const generatePassword = (length = 12): string => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
+    const bytes = randomBytes(length);
+    let password = '';
+
+    for (let i = 0; i < length; i += 1) {
+        password += chars[bytes[i] % chars.length];
+    }
+
+    return password;
+};
+
+const generateAdminEmail = async (centerName: string): Promise<string> => {
+    const baseSlug = slugify(centerName) || 'center';
+    const baseEmail = `${baseSlug}@aitest.uz`;
+    const existing = await query('SELECT id FROM users WHERE email = $1', [baseEmail]);
+
+    if (existing.rows.length === 0) {
+        return baseEmail;
+    }
+
+    let counter = 2;
+    let candidate = `${baseSlug}${counter}@aitest.uz`;
+
+    while (true) {
+        const duplicate = await query('SELECT id FROM users WHERE email = $1', [candidate]);
+        if (duplicate.rows.length === 0) {
+            return candidate;
+        }
+        counter += 1;
+        candidate = `${baseSlug}${counter}@aitest.uz`;
+    }
+};
 
 // Register Training Center
 export const registerTrainingCenter = async (
     req: Request<{}, {}, {
         center_name: string;
         center_email: string;
-        admin_email: string;
-        admin_password: string;
+        admin_email?: string;
+        admin_password?: string;
         admin_name: string;
         phone?: string;
     }>,
@@ -19,13 +56,16 @@ export const registerTrainingCenter = async (
         const { center_name, center_email, admin_email, admin_password, admin_name, phone } = req.body;
 
         // Validate input
-        if (!center_name || !center_email || !admin_email || !admin_password || !admin_name) {
+        if (!center_name || !center_email || !admin_name) {
             res.status(400).json({
                 success: false,
-                error: 'Missing required fields',
+                error: 'Markaz nomi, elektron pochta va administrator ismi talab qilinadi',
             });
             return;
         }
+
+        const generatedAdminEmail = admin_email?.trim() || await generateAdminEmail(center_name);
+        const generatedAdminPassword = admin_password?.trim() || generatePassword();
 
         // Check if training center already exists
         const centerResult = await query(
@@ -52,14 +92,14 @@ export const registerTrainingCenter = async (
         const centerId = centerResponse.rows[0].id;
 
         // Hash admin password
-        const passwordHash = await hashPassword(admin_password);
+        const passwordHash = await hashPassword(generatedAdminPassword);
 
         // Create admin user
         const userResponse = await query(
             `INSERT INTO users (training_center_id, email, password_hash, full_name, role)
              VALUES ($1, $2, $3, $4, $5)
              RETURNING id, email, full_name, role, training_center_id`,
-            [centerId, admin_email, passwordHash, admin_name, 'admin'],
+            [centerId, generatedAdminEmail, passwordHash, admin_name, 'admin'],
         );
 
         const user = userResponse.rows[0] as User;
@@ -72,7 +112,7 @@ export const registerTrainingCenter = async (
 
         res.status(201).json({
             success: true,
-            message: 'Training center registered successfully',
+            message: 'Markaz muvaffaqiyatli ro\'yxatga olindi. Admin uchun login va parol yaratilgan.',
             data: {
                 token,
                 user: {
@@ -81,6 +121,10 @@ export const registerTrainingCenter = async (
                     full_name: user.full_name,
                     role: user.role,
                     training_center_id: user.training_center_id,
+                },
+                generated_credentials: {
+                    email: generatedAdminEmail,
+                    password: generatedAdminPassword,
                 },
             },
         });

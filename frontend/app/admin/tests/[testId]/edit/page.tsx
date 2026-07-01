@@ -38,10 +38,10 @@ export default function TestEditPage() {
     const fetchTestAndQuestions = async () => {
         try {
             const [testRes, questionsRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/admin/tests/${testId}`, {
+                fetch(`${API_BASE_URL}/api/v1/admin/tests/${testId}`, {
                     headers: { 'Authorization': `Bearer ${token}` },
                 }),
-                fetch(`${API_BASE_URL}/admin/tests/${testId}/questions`, {
+                fetch(`${API_BASE_URL}/api/v1/admin/tests/${testId}/questions`, {
                     headers: { 'Authorization': `Bearer ${token}` },
                 }),
             ]);
@@ -66,7 +66,7 @@ export default function TestEditPage() {
         e.preventDefault();
 
         try {
-            const response = await fetch(`${API_BASE_URL}/admin/tests/${testId}/questions`, {
+            const response = await fetch(`${API_BASE_URL}/api/v1/admin/tests/${testId}/questions`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -106,7 +106,7 @@ export default function TestEditPage() {
         if (confirm('Are you sure you want to delete this question?')) {
             try {
                 const response = await fetch(
-                    `${API_BASE_URL}/admin/tests/${testId}/questions/${questionId}`,
+                    `${API_BASE_URL}/api/v1/admin/tests/${testId}/questions/${questionId}`,
                     {
                         method: 'DELETE',
                         headers: { 'Authorization': `Bearer ${token}` },

@@ -16,11 +16,14 @@ export interface TrainingCenter {
 // User
 export interface User {
     id: string;
-    training_center_id: string;
+    training_center_id: string | null;
     email: string;
     password_hash: string;
     full_name: string;
-    role: 'admin' | 'teacher' | 'student';
+    role: 'admin' | 'teacher' | 'student' | 'super_admin';
+    subject?: string;
+    study_group?: string;
+    lesson_script?: string;
     is_active: boolean;
     created_at: Date;
     updated_at: Date;
@@ -104,7 +107,7 @@ export interface Subscription {
 // JWT Payload
 export interface JWTPayload {
     userId: string;
-    trainingCenterId: string;
+    trainingCenterId: string | null;
     email: string;
     role: string;
 }
