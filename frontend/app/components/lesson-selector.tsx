@@ -1,22 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { API_BASE_URL } from "../../lib/api";
+import { useAuthStore } from "../../lib/auth";
 
-interface Lesson {
+interface Topic {
     id: number;
     name: string;
+    description?: string;
 }
 
-interface SubjectCategory {
+interface LessonScript {
     id: string;
-    name: string;
-    fromLesson: number;
-    toLesson: number;
+    subject_name?: string;
+    group_name?: string;
+    title?: string;
+    content: string;
+    topics?: Topic[];
 }
 
 interface LessonSelectorProps {
-    onStartExam: (lessonId: number) => void;
+    onStartExam: (lessonId: string, selectedTopic?: string) => void;
     loading: boolean;
 }
 
@@ -24,9 +28,10 @@ export default function LessonSelector({
     onStartExam,
     loading,
 }: LessonSelectorProps) {
-    const [syllabus, setSyllabus] = useState<Lesson[]>([]);
-    const [categories, setCategories] = useState<SubjectCategory[]>([]);
-    const [selectedLesson, setSelectedLesson] = useState<number>(0);
+    const { token } = useAuthStore();
+    const [lessonScripts, setLessonScripts] = useState<LessonScript[]>([]);
+    const [selectedScript, setSelectedScript] = useState<string>("");
+    const [selectedTopic, setSelectedTopic] = useState<string>("");
     const [fetchError, setFetchError] = useState<string | null>(null);
     const [showRules, setShowRules] = useState(false);
     const [acceptedRules, setAcceptedRules] = useState(false);
@@ -34,46 +39,61 @@ export default function LessonSelector({
     useEffect(() => {
         let isMounted = true;
 
-        fetch(`${API_BASE_URL}/api/v1/tests/syllabus`, {
-            method: "GET",
-            headers: {
-                Accept: "application/json",
-            },
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                if (!isMounted) return;
-                console.log("Backend javobi (Syllabus):", data);
-                const lessons =
-                    data.data ||
-                    data.syllabus ||
-                    (Array.isArray(data) ? data : null);
+        const fetchLessonScripts = async () => {
+            if (!token) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/admin/lesson-scripts`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                const data = await response.json();
 
-                if (lessons && Array.isArray(lessons)) {
-                    setSyllabus(lessons);
-                    if (Array.isArray(data.categories)) {
-                        setCategories(data.categories);
-                    }
-                    if (lessons.length > 0) {
-                        setSelectedLesson(lessons[0].id);
+                if (!isMounted) return;
+
+                if (data.success && Array.isArray(data.data)) {
+                    setLessonScripts(data.data);
+                    if (data.data.length > 0) {
+                        setSelectedScript(data.data[0].id);
                     }
                 } else {
-                    setFetchError(
-                        "Darslar ro'yxati topilmadi yoki format noto'g'ri.",
-                    );
+                    setFetchError("Dars skriptlari topilmadi");
                 }
-            })
-            .catch((err) => {
+            } catch (error) {
                 if (isMounted) {
-                    console.error("Syllabus yuklash xatosi:", err);
-                    setFetchError("Backend bilan bog'lanishda xatolik.");
+                    setFetchError("Backend bilan bog'lanishda xatolik");
                 }
-            });
+            }
+        };
+
+        fetchLessonScripts();
 
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [token]);
+
+    // Reset selected topic when script changes
+    useEffect(() => {
+        setSelectedTopic("");
+    }, [selectedScript]);
+
+    const handleStartExam = () => {
+        if (selectedScript) {
+            setAcceptedRules(false);
+            setShowRules(true);
+        }
+    };
+
+    const handleConfirmStart = () => {
+        if (acceptedRules && selectedScript) {
+            setShowRules(false);
+            onStartExam(selectedScript, selectedTopic);
+        }
+    };
+
+    const currentScriptObj = lessonScripts.find((s) => s.id === selectedScript);
+    const hasTopics = currentScriptObj && Array.isArray(currentScriptObj.topics) && currentScriptObj.topics.length > 0;
 
     return (
         <div className="w-full max-w-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800 p-8 rounded-2xl shadow-xl z-10 animate-fadeIn">
@@ -82,11 +102,10 @@ export default function LessonSelector({
                     Imtihon sozlamalari
                 </span>
                 <h2 className="text-xl font-semibold mt-1 text-slate-200">
-                    Hozirda qaysi darsga kelgansiz?
+                    Dars skriptini tanlang
                 </h2>
                 <p className="text-sm text-slate-400 mt-1">
-                    AI tanlangan darsgacha bo&apos;lgan barcha o&apos;tilgan mavzulardan
-                    aralash imtihon tayyorlaydi.
+                    Admin panel orqali qo'shilgan dars skriptlaridan birini tanlang.
                 </p>
             </div>
 
@@ -95,57 +114,52 @@ export default function LessonSelector({
                     <div className="w-full bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm text-center">
                         {fetchError}
                     </div>
+                ) : lessonScripts.length === 0 ? (
+                    <div className="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-slate-400 text-center">
+                        Dars skriptlari yuklanmoqda...
+                    </div>
                 ) : (
-                    <select
-                        value={selectedLesson}
-                        onChange={(e) =>
-                            setSelectedLesson(Number(e.target.value))
-                        }
-                        disabled={loading || syllabus.length === 0}
-                        className="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-slate-300 focus:outline-none focus:border-cyan-500 transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                        {syllabus.length === 0 ? (
-                            <option value={0}>Darslar yuklanmoqda...</option>
-                        ) : categories.length > 0 ? (
-                            categories.map((category) => (
-                                <optgroup key={category.id} label={category.name}>
-                                    {syllabus
-                                        .filter(
-                                            (lesson) =>
-                                                lesson.id >=
-                                                    category.fromLesson &&
-                                                lesson.id <= category.toLesson,
-                                        )
-                                        .map((lesson) => (
-                                            <option
-                                                key={lesson.id}
-                                                value={lesson.id}
-                                            >
-                                                {lesson.name}
-                                            </option>
-                                        ))}
-                                </optgroup>
-                            ))
-                        ) : (
-                            syllabus.map((lesson) => (
-                                <option key={lesson.id} value={lesson.id}>
-                                    {lesson.name}
+                    <div className="space-y-4">
+                        <select
+                            value={selectedScript}
+                            onChange={(e) => setSelectedScript(e.target.value)}
+                            disabled={loading}
+                            className="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-slate-300 focus:outline-none focus:border-cyan-500 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                            {lessonScripts.map((script) => (
+                                <option key={script.id} value={script.id}>
+                                    {script.subject_name ? `${script.subject_name} uchun dars scripti` : 'Umumiy dars scripti'}
+                                    {script.group_name && ` (${script.group_name})`}
                                 </option>
-                            ))
+                            ))}
+                        </select>
+
+                        {hasTopics && (
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-slate-300">
+                                    Qaysi mavzugacha keldingiz?
+                                </label>
+                                <select
+                                    value={selectedTopic}
+                                    onChange={(e) => setSelectedTopic(e.target.value)}
+                                    disabled={loading}
+                                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-slate-300 focus:outline-none focus:border-cyan-500 transition-colors cursor-pointer disabled:opacity-50"
+                                >
+                                    <option value="">Barcha mavzular (To'liq dars skripti)</option>
+                                    {currentScriptObj.topics?.map((topic) => (
+                                        <option key={topic.id} value={topic.name}>
+                                            {topic.name} {topic.description ? `- ${topic.description}` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         )}
-                    </select>
+                    </div>
                 )}
 
                 <button
-                    onClick={() => {
-                        if (selectedLesson !== 0) {
-                            setAcceptedRules(false);
-                            setShowRules(true);
-                        }
-                    }}
-                    disabled={
-                        loading || syllabus.length === 0 || selectedLesson === 0
-                    }
+                    onClick={handleStartExam}
+                    disabled={loading || !selectedScript}
                     className="w-full bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-slate-800 disabled:to-slate-800 text-white font-medium py-3 px-6 rounded-xl transition-all shadow-lg active:scale-[0.99]"
                 >
                     {loading
@@ -209,12 +223,7 @@ export default function LessonSelector({
                                 Bekor qilish
                             </button>
                             <button
-                                onClick={() => {
-                                    if (acceptedRules) {
-                                        setShowRules(false);
-                                        onStartExam(selectedLesson);
-                                    }
-                                }}
+                                onClick={handleConfirmStart}
                                 disabled={!acceptedRules}
                                 className="flex-1 bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-slate-800 disabled:to-slate-800 text-white font-medium py-2.5 rounded-xl transition-all"
                             >

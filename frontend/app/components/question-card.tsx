@@ -10,7 +10,7 @@ interface Question {
 
 interface QuestionCardProps {
     questions: Question[];
-    currentLesson: number;
+    currentLesson: string;
     onFinishExam: (
         history: Array<{ question: string; answer: string }>,
         photoBase64: string | null,
@@ -25,9 +25,9 @@ const VOICE_SUSTAINED_MS = 1200;
 const VOICE_BURST_MIN_MS = 450;
 const VOICE_BURST_LIMIT = 3;
 const VOICE_BURST_WINDOW_MS = 60000;
-const PROCTORING_INTERVAL_MS = 3000;
-const CRITICAL_CONFIDENCE = 35;
-const LOOKING_AWAY_CONFIDENCE = 70;
+const PROCTORING_INTERVAL_MS = 1500; // Kuchaytirildi: 3s -> 1.5s
+const CRITICAL_CONFIDENCE = 50; // Kuchaytirildi: 35 -> 50
+const LOOKING_AWAY_CONFIDENCE = 80; // Kuchaytirildi: 70 -> 80
 
 export default function QuestionCard({
     questions,
@@ -107,7 +107,7 @@ export default function QuestionCard({
             audioContextRef.current &&
             audioContextRef.current.state !== "closed"
         ) {
-            audioContextRef.current.close().catch((e) => console.error(e));
+            audioContextRef.current.close().catch(() => {});
         }
         if (audioIntervalRef.current) {
             clearInterval(audioIntervalRef.current);
@@ -232,10 +232,8 @@ export default function QuestionCard({
                 return;
             }
 
-            if (violationType === "no_person" && confidence >= 65) {
-                registerViolation(reason, frame, {
-                    immediate: violationsRef.current >= 1,
-                });
+            if (violationType === "no_person" && confidence >= 55) { // Kuchaytirildi: 65 -> 55
+                triggerForceFail("Yuz aniqlanmadi — imtihon to'xtatildi.", frame); // Darrov bloklash
                 return;
             }
 
@@ -250,7 +248,7 @@ export default function QuestionCard({
                 return;
             }
 
-            if (confidence >= 60) {
+            if (confidence >= 50) { // Kuchaytirildi: 60 -> 50
                 registerViolation(reason, frame);
             }
         },
@@ -288,7 +286,6 @@ export default function QuestionCard({
                 handleProctoringResult(data);
             }
         } catch (err) {
-            console.error("Frame tekshirishda xatolik:", err);
         } finally {
             isCheckingFrameRef.current = false;
         }
@@ -400,7 +397,6 @@ export default function QuestionCard({
                 }
             }, 250);
         } catch (audioErr) {
-            console.error(audioErr);
         }
     }, [registerViolation, registerVoiceViolation]);
 
@@ -408,11 +404,10 @@ export default function QuestionCard({
         const prevLength = lastAnswerLengthRef.current;
         const addedChars = value.length - prevLength;
 
-        if (addedChars > 40 && prevLength > 0) {
-            registerViolation(
+        if (addedChars > 30 && prevLength > 0) { // Kuchaytirildi: 40 -> 30
+            triggerForceFail( // Darrov bloklash
                 "Katta hajmdagi matn qo'shildi — nusxa ko'chirish shubhasi.",
                 takeSnapshot(),
-                { immediate: true },
             );
             return;
         }
@@ -441,7 +436,7 @@ export default function QuestionCard({
                 streamRef.current = mediaStream;
                 if (videoRef.current) {
                     videoRef.current.srcObject = mediaStream;
-                    videoRef.current.play().catch(console.error);
+                    videoRef.current.play().catch(() => {});
                 }
                 setProctoringStatus("🟢 AI Kamera faol");
                 await startAudioMonitoring();
@@ -644,7 +639,7 @@ export default function QuestionCard({
             <div className="space-y-4">
                 <textarea
                     ref={textareaRef}
-                    className="w-full h-32 bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-slate-300 focus:outline-none focus:border-cyan-500 transition-colors resize-none"
+                    className="w-full h-32 bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-slate-300 focus:outline-none focus:border-slate-600 transition-colors resize-none"
                     value={answer}
                     onChange={(e) => handleAnswerChange(e.target.value)}
                     onPaste={(e) => e.preventDefault()}

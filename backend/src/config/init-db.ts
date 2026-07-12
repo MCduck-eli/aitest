@@ -168,6 +168,81 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
+        // Subjects (Fanlar)
+        await query(`
+            CREATE TABLE IF NOT EXISTS subjects (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                training_center_id UUID NOT NULL REFERENCES training_centers(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(training_center_id, name)
+            );
+        `);
+
+        // Study Groups (Guruhlar)
+        await query(`
+            CREATE TABLE IF NOT EXISTS study_groups (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                training_center_id UUID NOT NULL REFERENCES training_centers(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(training_center_id, name)
+            );
+        `);
+
+        // Subject-Group Relationships (Fan-Guruh bog'lanishi)
+        await query(`
+            CREATE TABLE IF NOT EXISTS subject_groups (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+                group_id UUID NOT NULL REFERENCES study_groups(id) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(subject_id, group_id)
+            );
+        `);
+
+        // Lesson Scripts (Dars skriptlari)
+        await query(`
+            CREATE TABLE IF NOT EXISTS lesson_scripts (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                training_center_id UUID NOT NULL REFERENCES training_centers(id) ON DELETE CASCADE,
+                subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
+                group_id UUID REFERENCES study_groups(id) ON DELETE CASCADE,
+                title VARCHAR(255),
+                content TEXT NOT NULL,
+                test_bank_id UUID REFERENCES test_banks(id) ON DELETE SET NULL,
+                topics JSONB DEFAULT '[]'::jsonb,
+                created_by UUID NOT NULL REFERENCES users(id),
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        // Student Progress (O'quvchilarning dars darajasi)
+        await query(`
+            CREATE TABLE IF NOT EXISTS student_progress (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                training_center_id UUID NOT NULL REFERENCES training_centers(id) ON DELETE CASCADE,
+                student_name VARCHAR(255) NOT NULL,
+                subject VARCHAR(255) NOT NULL,
+                study_group VARCHAR(255) NOT NULL,
+                current_lesson_script_id UUID REFERENCES lesson_scripts(id) ON DELETE SET NULL,
+                lesson_number INTEGER DEFAULT 1,
+                completed_lessons TEXT[] DEFAULT '{}',
+                last_accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(training_center_id, student_name, subject, study_group)
+            );
+        `);
+
         // Create indexes for performance
         await query(`CREATE INDEX IF NOT EXISTS idx_users_training_center ON users(training_center_id);`);
         await query(`CREATE INDEX IF NOT EXISTS idx_test_banks_training_center ON test_banks(training_center_id);`);
@@ -175,6 +250,10 @@ export const initializeDatabase = async (): Promise<void> => {
         await query(`CREATE INDEX IF NOT EXISTS idx_exam_results_test_bank ON exam_results(test_bank_id);`);
         await query(`CREATE INDEX IF NOT EXISTS idx_exam_results_student ON exam_results(student_id);`);
         await query(`CREATE INDEX IF NOT EXISTS idx_violations_exam_result ON proctoring_violations(exam_result_id);`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_subjects_training_center ON subjects(training_center_id);`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_study_groups_training_center ON study_groups(training_center_id);`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_lesson_scripts_training_center ON lesson_scripts(training_center_id);`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_student_progress_training_center ON student_progress(training_center_id);`);
 
         const masterAdminEmail = process.env.MASTER_ADMIN_EMAIL?.trim() || 'superadmin@aitest.com';
         const masterAdminPassword = process.env.MASTER_ADMIN_PASSWORD?.trim() || 'SuperAdmin123!';
@@ -190,6 +269,11 @@ export const initializeDatabase = async (): Promise<void> => {
                  role = EXCLUDED.role,
                  is_active = EXCLUDED.is_active;`,
             [masterAdminEmail, masterAdminPasswordHash, masterAdminName],
+        );
+
+        // Clean up 'Main Training Center' if exists (not needed anymore)
+        await query(
+            `DELETE FROM training_centers WHERE name = 'Main Training Center'`
         );
 
         console.log('✅ Database initialized successfully!');

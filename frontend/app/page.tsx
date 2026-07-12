@@ -1,166 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import LessonSelector from "./components/lesson-selector";
-import QuestionCard from "./components/question-card";
-import ExamResult from "./components/exam-result";
-import AIOrb from "./components/AI-orb";
-import { API_BASE_URL } from "../lib/api";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export default function AIPage() {
-    const [studentName] = useState("Eldor Abdukhalikov");
-    const [loading, setLoading] = useState(false);
-    const [step, setStep] = useState<"select" | "exam" | "result">("select");
+export default function HomePage() {
+    const router = useRouter();
 
-    const [questions, setQuestions] = useState([]);
-    const [currentLesson, setCurrentLesson] = useState(1);
-    const [aiResult, setAiResult] = useState<{
-        score: number;
-        feedback: string;
-        photoBase64?: string | null;
-    } | null>(null);
-
-    const handleStartExam = async (lessonId: number) => {
-        setLoading(true);
-        try {
-            const response = await fetch(
-                `${API_BASE_URL}/api/v1/tests/start-exam`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Accept: "application/json",
-                    },
-                    body: JSON.stringify({
-                        lessonId,
-                    }),
-                },
-            );
-
-            const data = await response.json();
-
-            if (response.ok && data.success) {
-                setQuestions(data.questions || []);
-                setCurrentLesson(data.currentLesson || lessonId);
-                setStep("exam");
-            } else {
-                alert(
-                    `Xatolik: ${data.message || "Server ma'lumotni qaytarmadi"}`,
-                );
-            }
-        } catch (error) {
-            console.error("❌ Fetch xatosi:", error);
-            alert("Backendga ulanib bo'lmadi!");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleFinishExam = async (
-        examHistory: Array<{ question: string; answer: string }>,
-        photoBase64: string | null,
-        violationCount: number = 0,
-    ) => {
-        setLoading(true);
-        try {
-            const response = await fetch(
-                `${API_BASE_URL}/api/v1/tests/submit-full-exam`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        studentName,
-                        examHistory,
-                        photoBase64,
-                        violationCount,
-                    }),
-                },
-            );
-            const data = await response.json();
-
-            if (response.ok && data.success) {
-                const evalData = data.evaluation || {};
-
-                setAiResult({
-                    score: Number(evalData.finalScore) || 0,
-                    feedback:
-                        evalData.overallFeedback || "Baholash yakunlandi.",
-                    photoBase64: photoBase64 ?? null,
-                });
-                setStep("result");
-            } else {
-                alert(
-                    "Natijani saqlashda xatolik: " +
-                        (data.message || "Noma'lum xato"),
-                );
-            }
-        } catch (error) {
-            console.error("Imtihon topshirishda xato:", error);
-            alert("Serverga ulanishda xatolik yuz berdi.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleForceFail = async (
-        reason: string,
-        photoBase64: string | null,
-    ) => {
-        setLoading(true);
-        try {
-            await fetch(`${API_BASE_URL}/api/v1/tests/report-fail`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    studentName,
-                    reason: `🚫 IMTIHON MUZLATILDI: ${reason}`,
-                    photoBase64,
-                }),
-            });
-            setAiResult({
-                score: 0,
-                feedback: `Qoidabuzarlik: ${reason}`,
-                photoBase64: photoBase64 ?? null,
-            });
-            setStep("result");
-        } catch (error) {
-            console.error("Force fail xatosi:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleRestart = () => {
-        setQuestions([]);
-        setAiResult(null);
-        setStep("select");
-    };
+    useEffect(() => {
+        router.push("/student");
+    }, [router]);
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
-            <AIOrb loading={loading} />
-            {step === "select" && (
-                <LessonSelector
-                    onStartExam={handleStartExam}
-                    loading={loading}
-                />
-            )}
-            {step === "exam" && (
-                <QuestionCard
-                    questions={questions}
-                    currentLesson={currentLesson}
-                    onFinishExam={handleFinishExam}
-                    onForceFail={handleForceFail}
-                />
-            )}
-            {step === "result" && aiResult && (
-                <ExamResult
-                    score={aiResult.score}
-                    feedback={aiResult.feedback}
-                    onRestart={handleRestart}
-                    photoBase64={aiResult.photoBase64 ?? null}
-                />
-            )}
+        <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+            <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                <p>Yuklanmoqda...</p>
+            </div>
         </div>
     );
 }

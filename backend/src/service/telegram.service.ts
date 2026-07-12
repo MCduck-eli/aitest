@@ -5,12 +5,28 @@ dotenv.config();
 
 const botToken = process.env.BOT_TOKEN;
 const adminChatId = process.env.ADMIN_CHAT_ID;
+const superAdminChatId = process.env.SUPER_ADMIN_CHAT_ID;
 
 if (!botToken) {
     console.error("❌ Xatolik: .env faylida BOT_TOKEN topilmadi!");
 }
 
 export const bot = new Telegraf(botToken || "");
+
+export const sendTelegramMessage = async (chatId: string, message: string) => {
+    try {
+        if (!chatId) {
+            console.warn("Telegram chat ID mavjud emas, xabar yuborilmadi.");
+            return;
+        }
+        await bot.telegram.sendMessage(chatId, message, {
+            parse_mode: "Markdown",
+        });
+        console.log("📢 Telegramga xabar muvaffaqiyatli yuborildi.");
+    } catch (error) {
+        console.error("Telegram bot xabar yuborishda xatolik:", error);
+    }
+};
 
 export const sendTestReport = async (reportData: {
     studentName: string;
@@ -21,8 +37,10 @@ export const sendTestReport = async (reportData: {
     photoBase64?: string;
 }) => {
     try {
-        if (!adminChatId) {
-            throw new Error("ADMIN_CHAT_ID sozlanmagan.");
+        if (!adminChatId && !superAdminChatId) {
+            throw new Error(
+                "ADMIN_CHAT_ID yoki SUPER_ADMIN_CHAT_ID sozlanmagan.",
+            );
         }
 
         const { studentName, score, violations, status, reason, photoBase64 } =
@@ -46,18 +64,37 @@ ${reason ? `📝 *Izoh/Sabab:* ${reason}` : ""}
             );
             const imageBuffer = Buffer.from(base64Data, "base64");
 
-            await bot.telegram.sendPhoto(
-                adminChatId,
-                { source: imageBuffer },
-                {
-                    caption: message,
-                    parse_mode: "Markdown",
-                },
-            );
+            if (adminChatId) {
+                await bot.telegram.sendPhoto(
+                    adminChatId,
+                    { source: imageBuffer },
+                    {
+                        caption: message,
+                        parse_mode: "Markdown",
+                    },
+                );
+            }
+            if (superAdminChatId) {
+                await bot.telegram.sendPhoto(
+                    superAdminChatId,
+                    { source: imageBuffer },
+                    {
+                        caption: message,
+                        parse_mode: "Markdown",
+                    },
+                );
+            }
         } else {
-            await bot.telegram.sendMessage(adminChatId, message, {
-                parse_mode: "Markdown",
-            });
+            if (adminChatId) {
+                await bot.telegram.sendMessage(adminChatId, message, {
+                    parse_mode: "Markdown",
+                });
+            }
+            if (superAdminChatId) {
+                await bot.telegram.sendMessage(superAdminChatId, message, {
+                    parse_mode: "Markdown",
+                });
+            }
         }
 
         console.log("📢 Natijalar muvaffaqiyatli Telegramga yuborildi.");

@@ -3,6 +3,7 @@ import {
     evaluateFullExam,
     checkProctoringImage,
     generateQuestionsByTopic,
+    generateQuestionsFromScript,
 } from "../service/ai.service";
 import { sendTestReport } from "../service/telegram.service";
 import {
@@ -12,6 +13,48 @@ import {
     getLessonsUpTo,
     getTopicsUpToLesson,
 } from "../data/syllabus";
+import { query } from "../config/database";
+
+// Dars skriptining kontentini boyitish — qisqa bo'lsa syllabus dan qo'shib berish
+const enrichScriptContent = (rawContent: string, subjectName: string): string => {
+    const isShort = !rawContent || rawContent.trim().length < 200;
+    const looksLikeTopicList = /^[\d\-\.\s•\*]+[а-яa-zA-ZА-ЯёЁ]/m.test(rawContent) 
+        && rawContent.trim().split('\n').length < 15
+        && rawContent.trim().length < 500;
+
+    if (!isShort && !looksLikeTopicList) {
+        return rawContent; // Kontent yaxshi, o'zgartirma
+    }
+
+    // Syllabusdan mos darslarni topib, keyKnowledge ni qo'sh
+    const relevantLessons = FoundationSyllabus.filter(lesson => {
+        const subjectLower = subjectName.toLowerCase();
+        const lessonNameLower = lesson.name.toLowerCase();
+        if (subjectLower.includes('c++') || subjectLower.includes('cpp')) {
+            return lesson.id >= 12 && lesson.id <= 22;
+        } else if (subjectLower.includes('python')) {
+            return lesson.id >= 23 && lesson.id <= 32;
+        } else if (subjectLower.includes('kompyuter') || subjectLower.includes('foundation')) {
+            return lesson.id >= 1 && lesson.id <= 11;
+        } else if (subjectLower.includes('sql')) {
+            return lesson.id === 37;
+        } else if (subjectLower.includes('telegram') || subjectLower.includes('bot')) {
+            return lesson.id >= 33 && lesson.id <= 36;
+        }
+        return true; // Hammasini qo'sh
+    }).slice(0, 5);
+
+    if (relevantLessons.length === 0) return rawContent;
+
+    const enriched = relevantLessons
+        .map(l => `${l.name}:\n${l.keyKnowledge || l.topics.join(', ')}`)
+        .join('\n\n');
+
+    return rawContent 
+        ? `${rawContent}\n\n=== QUYIDAGI BILIMLAR ASOSIDA SAVOL TUZING ===\n${enriched}`
+        : enriched;
+};
+
 
 const handleError = (
     res: Response,
@@ -38,6 +81,8 @@ interface VerifyFrameBody {
 
 interface StartExamBody {
     lessonId?: number;
+    lessonScriptId?: string;
+    selectedTopic?: string;
     topic?: string;
 }
 
@@ -153,6 +198,67 @@ export const startExamByTopic = async (
     res: Response,
 ): Promise<void> => {
     try {
+        const lessonScriptId = req.body.lessonScriptId;
+        const selectedTopic = req.body.selectedTopic;
+
+        if (lessonScriptId) {
+            const scriptResult = await query(
+                `SELECT ls.*, s.name as subject_name, g.name as group_name
+                 FROM lesson_scripts ls
+                 LEFT JOIN subjects s ON ls.subject_id = s.id
+                 LEFT JOIN study_groups g ON ls.group_id = g.id
+                 WHERE ls.id = $1`,
+                [lessonScriptId]
+            );
+
+            if (scriptResult.rows.length === 0) {
+                res.status(404).json({
+                    success: false,
+                    message: "Dars skripti topilmadi.",
+                });
+                return;
+            }
+
+            const lessonScript = scriptResult.rows[0];
+            const subjectName = lessonScript.subject_name || 'Fan';
+            const groupName = lessonScript.group_name || 'Guruh';
+
+            // Kontent sifatsiz bo'lsa, syllabusdan boyitilgan kontentni qo'sh
+            const enrichedContent = enrichScriptContent(lessonScript.content || '', subjectName);
+
+            const questions = await generateQuestionsFromScript(
+                enrichedContent,
+                subjectName,
+                groupName,
+                selectedTopic
+            );
+
+            if (!questions || (Array.isArray(questions) && questions.length === 0)) {
+                res.status(500).json({
+                    success: false,
+                    message: "AI savollar generatsiya qilmadi. Iltimos, dars skriptini tekshiring.",
+                });
+                return;
+            }
+
+            const formattedQuestions = questions.map((q: any, index: number) => ({
+                id: index + 1,
+                text: q.question_text || q.text || q.question || "Savol matni topilmadi",
+                question_type: q.question_type || "multiple_choice",
+                difficulty_level: q.difficulty_level || "medium",
+                options: q.options || [],
+            }));
+
+            res.json({
+                success: true,
+                questions: formattedQuestions,
+                currentLesson: lessonScriptId,
+                subject: subjectName,
+                group: groupName,
+            });
+            return;
+        }
+
         const rawLessonId = req.body.lessonId ?? req.body.topic;
         const lessonId = Number(rawLessonId);
 

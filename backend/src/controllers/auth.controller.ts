@@ -18,6 +18,52 @@ const generatePassword = (length = 12): string => {
     return password;
 };
 
+// Get subjects by training center
+export const getSubjectsByTrainingCenter = async (
+    req: Request<{ id: string }>,
+    res: Response<ApiResponse>,
+): Promise<void> => {
+    try {
+        const result = await query(
+            `SELECT id, name, description FROM subjects WHERE training_center_id = $1 AND is_active = true ORDER BY name`,
+            [req.params.id],
+        );
+
+        res.json({
+            success: true,
+            data: result.rows,
+        });
+    } catch (error: any) {
+        console.error('Get subjects error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// Get groups linked to a subject
+export const getGroupsBySubject = async (
+    req: Request<{ subjectId: string }>,
+    res: Response<ApiResponse>,
+): Promise<void> => {
+    try {
+        const result = await query(
+            `SELECT g.id, g.name, g.description, sg.subject_id
+             FROM study_groups g
+             JOIN subject_groups sg ON g.id = sg.group_id
+             WHERE sg.subject_id = $1 AND g.is_active = true
+             ORDER BY g.name`,
+            [req.params.subjectId],
+        );
+
+        res.json({
+            success: true,
+            data: result.rows,
+        });
+    } catch (error: any) {
+        console.error('Get groups error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 const generateAdminEmail = async (centerName: string): Promise<string> => {
     const baseSlug = slugify(centerName) || 'center';
     const baseEmail = `${baseSlug}@aitest.uz`;
@@ -41,98 +87,77 @@ const generateAdminEmail = async (centerName: string): Promise<string> => {
 };
 
 // Register Training Center
-export const registerTrainingCenter = async (
-    req: Request<{}, {}, {
-        center_name: string;
-        center_email: string;
-        admin_email?: string;
-        admin_password?: string;
-        admin_name: string;
-        phone?: string;
-    }>,
+export const register = async (
+    req: Request<{}, {}, { center_name: string; center_email: string; admin_name: string; phone?: string }>,
     res: Response<ApiResponse>,
 ): Promise<void> => {
     try {
-        const { center_name, center_email, admin_email, admin_password, admin_name, phone } = req.body;
+        const { center_name, center_email, admin_name, phone } = req.body;
 
-        // Validate input
-        if (!center_name || !center_email || !admin_name) {
+        if (!center_name?.trim() || !center_email?.trim() || !admin_name?.trim()) {
             res.status(400).json({
                 success: false,
-                error: 'Markaz nomi, elektron pochta va administrator ismi talab qilinadi',
+                error: 'Markaz nomi, email va admin ismi majburiy',
             });
             return;
         }
 
-        const generatedAdminEmail = admin_email?.trim() || await generateAdminEmail(center_name);
-        const generatedAdminPassword = admin_password?.trim() || generatePassword();
-
         // Check if training center already exists
-        const centerResult = await query(
-            'SELECT id FROM training_centers WHERE email = $1 OR name = $2',
-            [center_email, center_name],
-        );
-
-        if (centerResult.rows.length > 0) {
+        const existingCenter = await query('SELECT id FROM training_centers WHERE email = $1', [center_email]);
+        if (existingCenter.rows.length > 0) {
             res.status(400).json({
                 success: false,
-                error: 'Training center already exists',
+                error: 'Bu elektron pochta bilan markaz allaqachon ro\'yxatdan o\'tgan',
             });
             return;
         }
 
         // Create training center
-        const centerResponse = await query(
-            `INSERT INTO training_centers (name, email, phone, subscription_plan)
-             VALUES ($1, $2, $3, $4)
+        const centerResult = await query(
+            `INSERT INTO training_centers (name, email, phone)
+             VALUES ($1, $2, $3)
              RETURNING id`,
-            [center_name, center_email, phone || null, 'free'],
+            [center_name.trim(), center_email.trim(), phone || null],
         );
 
-        const centerId = centerResponse.rows[0].id;
+        const trainingCenterId = centerResult.rows[0].id;
 
-        // Hash admin password
-        const passwordHash = await hashPassword(generatedAdminPassword);
+        // Generate admin credentials
+        const generatedEmail = await generateAdminEmail(center_name);
+        const generatedPassword = generatePassword();
+        const passwordHash = await hashPassword(generatedPassword);
 
         // Create admin user
-        const userResponse = await query(
-            `INSERT INTO users (training_center_id, email, password_hash, full_name, role)
-             VALUES ($1, $2, $3, $4, $5)
-             RETURNING id, email, full_name, role, training_center_id`,
-            [centerId, generatedAdminEmail, passwordHash, admin_name, 'admin'],
+        const userResult = await query(
+            `INSERT INTO users (training_center_id, email, password_hash, full_name, role, is_active)
+             VALUES ($1, $2, $3, $4, 'admin', true)
+             RETURNING id, email, full_name, role`,
+            [trainingCenterId, generatedEmail, passwordHash, admin_name.trim()],
         );
 
-        const user = userResponse.rows[0] as User;
-        const token = generateToken({
-            userId: user.id,
-            trainingCenterId: user.training_center_id,
-            email: user.email,
-            role: user.role,
-        });
+        const adminUser = userResult.rows[0];
 
         res.status(201).json({
             success: true,
-            message: 'Markaz muvaffaqiyatli ro\'yxatga olindi. Admin uchun login va parol yaratilgan.',
+            message: 'O\'quv markazi va admin hisobi muvaffaqiyatli yaratildi',
             data: {
-                token,
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    full_name: user.full_name,
-                    role: user.role,
-                    training_center_id: user.training_center_id,
+                training_center: {
+                    id: trainingCenterId,
+                    name: center_name,
+                    email: center_email,
                 },
+                admin: adminUser,
                 generated_credentials: {
-                    email: generatedAdminEmail,
-                    password: generatedAdminPassword,
+                    email: generatedEmail,
+                    password: generatedPassword,
                 },
             },
         });
     } catch (error: any) {
-        console.error('Registration error:', error);
+        console.error('Register error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Registration failed',
+            error: error.message || 'Ro\'yxatdan o\'tishda xatolik',
         });
     }
 };
@@ -183,9 +208,19 @@ export const login = async (
         }
 
         // Generate token
+        let trainingCenterId = user.training_center_id;
+        if (user.role === 'super_admin' && !trainingCenterId) {
+            const centerResult = await query(
+                `SELECT id FROM training_centers ORDER BY created_at LIMIT 1`
+            );
+            if (centerResult.rows.length > 0) {
+                trainingCenterId = centerResult.rows[0].id;
+            }
+        }
+
         const token = generateToken({
             userId: user.id,
-            trainingCenterId: user.training_center_id,
+            trainingCenterId: trainingCenterId,
             email: user.email,
             role: user.role,
         });
@@ -195,7 +230,7 @@ export const login = async (
             email: user.email,
             full_name: user.full_name,
             role: user.role,
-            training_center_id: user.training_center_id,
+            training_center_id: trainingCenterId,
             is_active: user.is_active,
             created_at: user.created_at,
             updated_at: user.updated_at,
@@ -246,6 +281,15 @@ export const getCurrentUser = async (req: Request, res: Response<ApiResponse>): 
 
         const user = userResult.rows[0] as UserPublic;
 
+        if (user.role === 'super_admin' && !user.training_center_id) {
+            const centerResult = await query(
+                `SELECT id FROM training_centers ORDER BY created_at LIMIT 1`
+            );
+            if (centerResult.rows.length > 0) {
+                user.training_center_id = centerResult.rows[0].id;
+            }
+        }
+
         res.json({
             success: true,
             data: user,
@@ -255,6 +299,119 @@ export const getCurrentUser = async (req: Request, res: Response<ApiResponse>): 
         res.status(500).json({
             success: false,
             error: error.message || 'Failed to get user',
+        });
+    }
+};
+
+// Student Login (simple login with name, center, subject_id, group_id)
+export const studentLogin = async (
+    req: Request<{}, {}, { full_name: string; training_center_id: string; subject_id: string; group_id: string }>,
+    res: Response<ApiResponse>,
+): Promise<void> => {
+    try {
+        const { full_name, training_center_id, subject_id, group_id } = req.body;
+
+        if (!full_name?.trim() || !training_center_id?.trim() || !subject_id?.trim() || !group_id?.trim()) {
+            res.status(400).json({
+                success: false,
+                error: 'Ism, markaz, fan va guruh majburiy',
+            });
+            return;
+        }
+
+        // Check if training center exists
+        const centerResult = await query('SELECT id FROM training_centers WHERE id = $1', [training_center_id]);
+        if (centerResult.rows.length === 0) {
+            res.status(400).json({
+                success: false,
+                error: 'O\'quv markazi topilmadi',
+            });
+            return;
+        }
+
+        // Fetch subject and group names
+        const subjectResult = await query('SELECT name FROM subjects WHERE id = $1', [subject_id]);
+        const groupResult = await query('SELECT name FROM study_groups WHERE id = $1', [group_id]);
+
+        if (subjectResult.rows.length === 0 || groupResult.rows.length === 0) {
+            res.status(400).json({
+                success: false,
+                error: 'Fan yoki guruh topilmadi',
+            });
+            return;
+        }
+
+        const subjectName = subjectResult.rows[0].name;
+        const groupName = groupResult.rows[0].name;
+
+        // Generate a simple token for student (no password required)
+        const studentId = randomBytes(16).toString('hex');
+        const token = generateToken({
+            userId: studentId,
+            trainingCenterId: training_center_id,
+            email: full_name,
+            role: 'student',
+        });
+
+        // Create or update student progress
+        const progressResult = await query(
+            `INSERT INTO student_progress (training_center_id, student_name, subject, study_group, last_accessed_at)
+             VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+             ON CONFLICT (training_center_id, student_name, subject, study_group)
+             DO UPDATE SET
+                 last_accessed_at = CURRENT_TIMESTAMP
+             RETURNING id, lesson_number, completed_lessons`,
+            [training_center_id, full_name.trim(), subjectName, groupName],
+        );
+
+        const studentProgress = progressResult.rows[0];
+
+        res.json({
+            success: true,
+            message: 'Muvaffaqiyatli kirildi',
+            data: {
+                token,
+                user: {
+                    id: studentId,
+                    full_name: full_name.trim(),
+                    role: 'student',
+                    training_center_id,
+                    subject: subjectName,
+                    study_group: groupName,
+                    progress: studentProgress,
+                },
+            },
+        });
+    } catch (error: any) {
+        console.error('Student login error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Kirishda xatolik',
+        });
+    }
+};
+
+// Get Training Centers (for student login)
+export const getTrainingCenters = async (req: Request, res: Response<ApiResponse>): Promise<void> => {
+    try {
+        // Faqat admin/teacher foydalanuvchisi bor training centerlarni qaytarish
+        const result = await query(
+            `SELECT DISTINCT tc.id, tc.name, tc.email, tc.phone 
+             FROM training_centers tc
+             INNER JOIN users u ON u.training_center_id = tc.id
+             WHERE tc.is_active = true AND u.role IN ('admin', 'teacher') AND u.is_active = true
+             ORDER BY tc.name`,
+        );
+
+        res.json({
+            success: true,
+            data: result.rows,
+        });
+    } catch (error: any) {
+        console.error('Get training centers error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to get training centers',
         });
     }
 };

@@ -37,7 +37,6 @@ export default function ResultsPage() {
             setTests(data.data);
             setLoading(false);
         } catch (error) {
-            console.error('Error fetching tests:', error);
             setLoading(false);
         }
     };
@@ -57,7 +56,6 @@ export default function ResultsPage() {
             setResults(data.data.results);
             setStatistics(data.data.statistics);
         } catch (error) {
-            console.error('Error fetching results:', error);
         } finally {
             setLoading(false);
         }

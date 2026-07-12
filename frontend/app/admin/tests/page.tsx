@@ -43,7 +43,6 @@ export default function TestsPage() {
             const data = await response.json();
             setTests(data.data);
         } catch (error) {
-            console.error('Error fetching tests:', error);
         } finally {
             setLoading(false);
         }
@@ -76,7 +75,6 @@ export default function TestsPage() {
             setShowForm(false);
             await fetchTests();
         } catch (error) {
-            console.error('Error creating test:', error);
             alert('Failed to create test');
         }
     };
@@ -97,7 +95,6 @@ export default function TestsPage() {
 
                 await fetchTests();
             } catch (error) {
-                console.error('Error deleting test:', error);
                 alert('Failed to delete test');
             }
         }

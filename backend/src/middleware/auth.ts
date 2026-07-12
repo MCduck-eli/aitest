@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/auth';
 import { JWTPayload } from '../types/models';
+import { query } from '../config/database';
 
 declare global {
     namespace Express {
@@ -10,7 +11,7 @@ declare global {
     }
 }
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
 
@@ -23,6 +24,17 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
         }
 
         const payload = verifyToken(token);
+
+        // Fallback for super_admin trainingCenterId
+        if (payload.role === 'super_admin' && !payload.trainingCenterId) {
+            const centerResult = await query(
+                `SELECT id FROM training_centers ORDER BY created_at LIMIT 1`
+            );
+            if (centerResult.rows.length > 0) {
+                payload.trainingCenterId = centerResult.rows[0].id;
+            }
+        }
+
         req.user = payload;
         next();
     } catch (error: any) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
@@ -31,6 +31,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const router = useRouter();
     const { logout, user } = useAuthStore();
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const handleLogout = () => {
         logout();
@@ -38,14 +43,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
 
     return (
-        <div className="flex h-screen bg-gray-100">
+        <div className="flex h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
+            {/* Stars background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-10 left-10 w-1 h-1 bg-white rounded-full opacity-50"></div>
+                <div className="absolute top-20 right-20 w-1 h-1 bg-white rounded-full opacity-30"></div>
+                <div className="absolute top-40 left-1/4 w-1 h-1 bg-white rounded-full opacity-40"></div>
+                <div className="absolute top-60 right-1/3 w-1 h-1 bg-white rounded-full opacity-60"></div>
+                <div className="absolute top-80 left-1/2 w-1 h-1 bg-white rounded-full opacity-20"></div>
+                <div className="absolute bottom-20 left-20 w-1 h-1 bg-white rounded-full opacity-50"></div>
+                <div className="absolute bottom-40 right-10 w-1 h-1 bg-white rounded-full opacity-40"></div>
+                <div className="absolute bottom-60 left-1/3 w-1 h-1 bg-white rounded-full opacity-30"></div>
+                <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-white rounded-full opacity-50"></div>
+                <div className="absolute top-2/3 left-1/4 w-1 h-1 bg-white rounded-full opacity-40"></div>
+            </div>
+
             {/* Sidebar */}
             <aside
                 className={`${
                     sidebarOpen ? 'w-64' : 'w-20'
-                } bg-gray-900 text-white transition-all duration-300 ease-in-out overflow-y-auto`}
+                } bg-slate-900/80 text-white transition-all duration-300 ease-in-out overflow-y-auto relative z-10 backdrop-blur-sm`}
             >
-                <div className="p-4 border-b border-gray-700">
+                <div className="p-4 border-b border-slate-700">
                     <h2 className={`text-xl font-bold ${!sidebarOpen && 'text-center'}`}>
                         {sidebarOpen ? 'AI Test' : 'AT'}
                     </h2>
@@ -80,19 +99,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </aside>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden relative z-10">
                 {/* Top Bar */}
-                <header className="bg-white shadow">
+                <header className="bg-slate-900/80 shadow backdrop-blur-sm">
                     <div className="flex items-center justify-between h-16 px-6">
                         <button
                             onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="text-gray-600 hover:text-gray-900"
+                            className="text-white hover:text-gray-300"
                         >
                             {sidebarOpen ? '☰' : '→'}
                         </button>
 
                         <div className="flex items-center gap-4">
-                            <span className="text-gray-700 font-medium">{user?.full_name}</span>
+                            <span className="text-white font-medium">{mounted ? (user?.full_name || 'Admin') : 'Admin'}</span>
                             <button
                                 onClick={handleLogout}
                                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"

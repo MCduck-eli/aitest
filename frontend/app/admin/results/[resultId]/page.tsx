@@ -36,7 +36,6 @@ export default function ResultDetailPage() {
             const data = await response.json();
             setResultData(data.data);
         } catch (error) {
-            console.error('Error fetching result:', error);
         } finally {
             setLoading(false);
         }
