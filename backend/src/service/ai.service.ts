@@ -6,6 +6,7 @@
     const groqClient = new OpenAI({
         baseURL: "https://api.groq.com/openai/v1",
         apiKey: process.env.GROQ_API_KEY,
+        timeout: 30000,
     });
 
     const GROQ_MODEL = "llama-3.3-70b-versatile";
@@ -267,8 +268,7 @@
                 messages: [
                     {
                         role: "system",
-                        content: `Siz ${subject || "IT"} fanidan professional test muallifisiz.
-Quyidagi dars skripti asosida 10 ta test savoli tuzing.${restrictionPrompt}
+                        content: `Siz ${subject || "IT"} fanidan test muallifisiz. Quyidagi dars skripti asosida 5 ta test savoli tuzing.${restrictionPrompt}
 
 🔴 MUTLAQO TAQIQLANGAN — bu turdagi savollar HECH QACHON bo'lmasin:
 • "Bu dars/kurs/skript nima haqida?" — YO'Q
@@ -379,37 +379,19 @@ export const generateQuestionsByTopic = async (
             )
             .join("\n\n");
 
-        const questionCount = Math.min(Math.max(lessons.length * 2, 5), 15);
+        const questionCount = 5;
 
         const response = await groqClient.chat.completions.create({
             model: GROQ_MODEL,
             messages: [
                 {
                     role: "system",
-                    content: `Siz professional o'qituvchisiz va test muallifisiz.
-Quyida darslar va ularning HAQIQIY BILIM KONTENTI berilgan. Shu kontentdan ${questionCount} ta test savoli tuzing.
+                    content: `Siz test muallifisiz. Quyida darslar kontenti berilgan. Shu kontentdan ${questionCount} ta test savoli tuzing.
 
-🔴 MUTLAQO TAQIQLANGAN (bunday savollar HECH QACHON bo'lmasin):
-- "N-darsda nima o'tildi?" yoki "N-darsning mavzusi nima?" kabi savollar
-- "Kursda nima o'rganiladi?" kabi umumiy kurs savollari
-- Dars raqami, dars nomi yoki kurs haqida biror narsa so'raydigan savollar
-- "Bu kursda..." yoki "O'tilgan darslarda..." bilan boshlanadigan savollar
+🔴 TAQIQLANGAN: dars raqami, dars nomi, kurs haqida savollar
+✅ RUHSAT BERILGAN: formulalar, sintaksis, konversiya, amallar, tushunchalar qisqa savollari
 
-✅ FAQAT BUNDAY SAVOLLAR TUZING (kontendan kelib chiqqan aniq, amaliy savollar):
-- Formulalar: "Excelda yig'indi hisoblash formulasi qaysi?" → =SUM()
-- Sintaksis: "C++ da ekranga matn chiqarish uchun qaysi operator ishlatiladi?" → cout
-- Konversiya: "Ikkilik 1010 soni o'nlik sistemada qancha?" → 10
-- Amallar: "Python da listga element qo'shish uchun qaysi metod ishlatiladi?" → append()
-- Tushunchalar: "DNS nima uchun kerak?" → Domen nomini IP manzilga aylantirish
-- Qoidalar: "Blok sxemada shart tekshirish qaysi shakl bilan belgilanadi?" → Romb
-
-QOIDALAR:
-- Savollar faqat o'zbek tilida
-- Har bir savol uchun 4 ta aniq javob varianti
-- Faqat bitta to'g'ri javob
-- Savollar turli darslar kontentidan aralash bo'lsin
-- Savol matni aniq va qisqa bo'lsin
-- Javob variantlari bir-biriga o'xshamasin
+QOIDALAR: o'zbek tilida, 4 ta variant, bitta to'g'ri javob, qisqa matn
 
 Javobni faqat quyidagi JSON formatida qaytaring:
 {
