@@ -32,3 +32,5 @@ const startServer = async () => {
 };
 
 startServer();
+
+// Trigger reload

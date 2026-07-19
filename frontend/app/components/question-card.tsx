@@ -25,9 +25,50 @@ const VOICE_SUSTAINED_MS = 1200;
 const VOICE_BURST_MIN_MS = 450;
 const VOICE_BURST_LIMIT = 3;
 const VOICE_BURST_WINDOW_MS = 60000;
-const PROCTORING_INTERVAL_MS = 1500; // Kuchaytirildi: 3s -> 1.5s
-const CRITICAL_CONFIDENCE = 50; // Kuchaytirildi: 35 -> 50
-const LOOKING_AWAY_CONFIDENCE = 80; // Kuchaytirildi: 70 -> 80
+const FACE_CHECK_INTERVAL_MS = 1500;
+
+// Load MediaPipe Face Detection from CDN
+function loadMediaPipeScript(): Promise<void> {
+    return new Promise((resolve, reject) => {
+        if (typeof window === "undefined") { reject(); return; }
+        if ((window as any).__mediapipeFaceDetectionLoaded) { resolve(); return; }
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js";
+        script.crossOrigin = "anonymous";
+        script.onload = () => {
+            (window as any).__mediapipeFaceDetectionLoaded = true;
+            resolve();
+        };
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+// Load TF.js + COCO-SSD object detection from CDN
+function loadCocoSsd(): Promise<void> {
+    return new Promise((resolve, reject) => {
+        if (typeof window === "undefined") { reject(); return; }
+        if ((window as any).__cocoSsdLoaded) { resolve(); return; }
+
+        const loadScript = (src: string) =>
+            new Promise<void>((res, rej) => {
+                const s = document.createElement("script");
+                s.src = src;
+                s.crossOrigin = "anonymous";
+                s.onload = () => res();
+                s.onerror = rej;
+                document.head.appendChild(s);
+            });
+
+        loadScript("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js")
+            .then(() => loadScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"))
+            .then(() => {
+                (window as any).__cocoSsdLoaded = true;
+                resolve();
+            })
+            .catch(reject);
+    });
+}
 
 export default function QuestionCard({
     questions,
@@ -49,15 +90,16 @@ export default function QuestionCard({
 
     const violationsRef = useRef(0);
     const isExamActive = useRef(true);
-    const referencePersonRef = useRef<string>("");
     const voiceStartRef = useRef<number | null>(null);
     const voiceBurstTimestampsRef = useRef<number[]>([]);
-    const isCheckingFrameRef = useRef(false);
     const lastAnswerLengthRef = useRef(0);
-
-    const examHistoryRef = useRef<Array<{ question: string; answer: string }>>(
-        [],
-    );
+    const examHistoryRef = useRef<Array<{ question: string; answer: string }>>([]);
+    const faceDetectionRef = useRef<any>(null);
+    const faceCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const cocoModelRef = useRef<any>(null);
+    const noFaceCountRef = useRef(0);
+    const mediaPipeReadyRef = useRef(false);
+    const objCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -74,24 +116,16 @@ export default function QuestionCard({
     };
 
     const takeSnapshot = (): string | null => {
-        if (
-            videoRef.current &&
-            canvasRef.current &&
-            videoRef.current.videoWidth > 0
-        ) {
+        if (videoRef.current && canvasRef.current && videoRef.current.videoWidth > 0) {
             const video = videoRef.current;
             const canvas = canvasRef.current;
-            const width = 640;
-            const height = 480;
-
-            canvas.width = width;
-            canvas.height = height;
-
+            canvas.width = 640;
+            canvas.height = 480;
             const context = canvas.getContext("2d");
             if (context) {
                 context.imageSmoothingEnabled = true;
                 context.imageSmoothingQuality = "medium";
-                context.drawImage(video, 0, 0, width, height);
+                context.drawImage(video, 0, 0, 640, 480);
                 return canvas.toDataURL("image/jpeg", 0.7);
             }
         }
@@ -103,14 +137,15 @@ export default function QuestionCard({
             streamRef.current.getTracks().forEach((track) => track.stop());
             streamRef.current = null;
         }
-        if (
-            audioContextRef.current &&
-            audioContextRef.current.state !== "closed"
-        ) {
+        if (audioContextRef.current && audioContextRef.current.state !== "closed") {
             audioContextRef.current.close().catch(() => {});
         }
-        if (audioIntervalRef.current) {
-            clearInterval(audioIntervalRef.current);
+        if (audioIntervalRef.current) clearInterval(audioIntervalRef.current);
+        if (faceCheckIntervalRef.current) clearInterval(faceCheckIntervalRef.current);
+        if (objCheckIntervalRef.current) clearInterval(objCheckIntervalRef.current);
+        if (faceDetectionRef.current) {
+            try { faceDetectionRef.current.close(); } catch {}
+            faceDetectionRef.current = null;
         }
     };
 
@@ -125,32 +160,12 @@ export default function QuestionCard({
     );
 
     const registerViolation = useCallback(
-        (
-            reason: string,
-            frame: string | null,
-            options?: { immediate?: boolean },
-        ) => {
+        (reason: string, frame: string | null) => {
             if (!isExamActive.current) return;
-
-            if (options?.immediate) {
-                triggerForceFail(reason, frame);
-                return;
-            }
-
             violationsRef.current += 1;
             setViolationsCount(violationsRef.current);
             setProctoringStatus("⚠️ Qoidabuzarlik aniqlandi");
-
-            if (violationsRef.current >= 3) {
-                triggerForceFail(
-                    `Ko'p martalik qoidabuzarlik: ${reason}`,
-                    frame,
-                );
-            } else {
-                triggerWarning(
-                    `Ogohlantirish (${violationsRef.current}/3): ${reason}`,
-                );
-            }
+            triggerForceFail(`Qoidabuzarlik: ${reason}`, frame);
         },
         [triggerForceFail],
     );
@@ -164,160 +179,168 @@ export default function QuestionCard({
         [triggerForceFail],
     );
 
-    const handleProctoringResult = useCallback(
-        (data: {
-            violationDetected?: boolean;
-            violationType?: string;
-            confidence?: number;
-            reason?: string;
-            personDescription?: string;
-            isCritical?: boolean;
-        }) => {
-            if (!data.violationDetected) {
-                if (data.personDescription && !referencePersonRef.current) {
-                    referencePersonRef.current = data.personDescription;
-                }
-                return;
-            }
-
-            const frame = takeSnapshot();
-            const confidence = Number(data.confidence) || 0;
-            const violationType = data.violationType || "unknown";
-            const reason = data.reason || "Qoidabuzarlik aniqlandi";
-
-            const normalizedReason = `${reason} ${data.personDescription || ""}`.toLowerCase();
-            const mentionsCriticalCue = [
-                "phone",
-                "mobile",
-                "smartphone",
-                "tablet",
-                "another person",
-                "other person",
-                "nearby person",
-                "someone beside",
-                "assistant",
-                "help",
-                "helper",
-                "suhbat",
-                "yordam",
-                "screen",
-                "monitor",
-                "second screen",
-                "paper",
-                "book",
-                "notebook",
-                "daftar",
-                "qog'oz",
-                "reading",
-                "copy",
-                "cheat",
-            ].some((term) => normalizedReason.includes(term));
-
-            const isImmediateCriticalViolation =
-                (data.isCritical ||
-                    [
-                        "phone",
-                        "external_help",
-                        "multiple_persons",
-                        "device_cheat",
-                        "reading_material",
-                        "screen_copy",
-                        "person_swap",
-                    ].includes(violationType) ||
-                    mentionsCriticalCue) &&
-                confidence >= CRITICAL_CONFIDENCE;
-
-            if (isImmediateCriticalViolation) {
-                triggerForceFail(`Qat'iy qoidabuzarlik: ${reason}`, frame);
-                return;
-            }
-
-            if (violationType === "no_person" && confidence >= 55) { // Kuchaytirildi: 65 -> 55
-                triggerForceFail("Yuz aniqlanmadi — imtihon to'xtatildi.", frame); // Darrov bloklash
-                return;
-            }
-
-            if (
-                violationType === "looking_away" &&
-                confidence >= LOOKING_AWAY_CONFIDENCE
-            ) {
-                triggerForceFail(
-                    "Ko'zlaringiz ekranga qaratilmagan — imtihon to'xtatildi.",
-                    frame,
-                );
-                return;
-            }
-
-            if (confidence >= 50) { // Kuchaytirildi: 60 -> 50
-                registerViolation(reason, frame);
-            }
-        },
-        [registerViolation, triggerForceFail],
-    );
-
-    const verifyFrame = useCallback(async () => {
-        if (!isExamActive.current || isCheckingFrameRef.current) return;
-
-        const frame = takeSnapshot();
-        if (!frame || frame.length <= 500) return;
-
-        const cleanBase64 = frame.includes(",") ? frame.split(",")[1] : frame;
-
-        isCheckingFrameRef.current = true;
-
+    // ─── MediaPipe Face Detection (Browser CDN) ───────────────────────────────
+    const initFaceDetection = useCallback(async () => {
         try {
-            const response = await fetch(
-                `${API_BASE_URL}/api/v1/tests/verify-frame`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        photoBase64: cleanBase64,
-                        referenceDescription:
-                            referencePersonRef.current || undefined,
-                    }),
-                },
-            );
-
-            const data = await response.json();
-            if (!isExamActive.current) return;
-
-            if (data.success) {
-                handleProctoringResult(data);
+            await loadMediaPipeScript();
+            const FaceDetection = (window as any).FaceDetection;
+            if (!FaceDetection) {
+                setProctoringStatus("🟢 Kamera nazorati faol (asosiy)");
+                return;
             }
-        } catch (err) {
-        } finally {
-            isCheckingFrameRef.current = false;
+
+            const fd = new FaceDetection({
+                locateFile: (file: string) =>
+                    `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`,
+            });
+
+            fd.setOptions({
+                model: "short",
+                minDetectionConfidence: 0.5,
+            });
+
+            fd.onResults((results: any) => {
+                if (!isExamActive.current) return;
+                const detections = results.detections || [];
+
+                if (detections.length === 0) {
+                    noFaceCountRef.current += 1;
+                    if (noFaceCountRef.current >= 2) {
+                        // 2 consecutive no-face frames → block
+                        triggerForceFail(
+                            "Yuz aniqlanmadi — imtihon to'xtatildi.",
+                            takeSnapshot(),
+                        );
+                    } else {
+                        setProctoringStatus("⚠️ Yuz ko'rinmayapti...");
+                    }
+                } else if (detections.length >= 2) {
+                    noFaceCountRef.current = 0;
+                    triggerForceFail(
+                        "Kadrda bir nechta odam aniqlandi — imtihon to'xtatildi.",
+                        takeSnapshot(),
+                    );
+                } else {
+                    noFaceCountRef.current = 0;
+                    // Check if face is looking away by checking bounding box center
+                    const box = detections[0].boundingBox;
+                    if (box) {
+                        const centerX = box.xCenter;
+                        // If face center is too far left or right → looking away
+                        if (centerX < 0.2 || centerX > 0.8) {
+                            triggerForceFail(
+                                "Ko'zlaringiz ekranda emas — imtihon to'xtatildi.",
+                                takeSnapshot(),
+                            );
+                            return;
+                        }
+                    }
+                    setProctoringStatus("🟢 AI Kamera nazorati faol");
+                }
+            });
+
+            await fd.initialize();
+            faceDetectionRef.current = fd;
+            mediaPipeReadyRef.current = true;
+            setProctoringStatus("🟢 AI Kamera nazorati faol");
+        } catch (e) {
+            console.warn("MediaPipe yuklanmadi:", e);
+            setProctoringStatus("🟢 Kamera nazorati faol");
         }
-    }, [handleProctoringResult]);
+    }, [triggerForceFail]);
+
+    // Run face detection on video frame
+    const checkFace = useCallback(async () => {
+        if (!isExamActive.current) return;
+        if (!faceDetectionRef.current || !videoRef.current) return;
+        if (videoRef.current.videoWidth === 0) return;
+        try {
+            await faceDetectionRef.current.send({ image: videoRef.current });
+        } catch {}
+    }, []);
+
+    // ─── COCO-SSD Object Detection (phone, book, laptop) ─────────────────────
+    const initObjectDetection = useCallback(async () => {
+        try {
+            await loadCocoSsd();
+            const cocoSsd = (window as any).cocoSsd;
+            if (!cocoSsd) {
+                console.warn("cocoSsd global not found");
+                return;
+            }
+            console.log("Loading COCO-SSD model...");
+            // Use mobilenet_v2 (more accurate than lite version)
+            const model = await cocoSsd.load({ base: "mobilenet_v2" });
+            cocoModelRef.current = model;
+            console.log("✅ COCO-SSD ready");
+        } catch (e) {
+            console.warn("COCO-SSD yuklanmadi:", e);
+        }
+    }, []);
+
+    const checkObjects = useCallback(async () => {
+        if (!isExamActive.current) return;
+        if (!cocoModelRef.current || !videoRef.current) return;
+        if (videoRef.current.videoWidth === 0) return;
+        try {
+            const predictions: Array<{ class: string; score: number }> =
+                await cocoModelRef.current.detect(videoRef.current);
+
+            // Log all detections for debugging
+            if (predictions.length > 0) {
+                console.log("COCO detections:", predictions.map(p => `${p.class}(${(p.score * 100).toFixed(0)}%)`).join(", "));
+            }
+
+            const BANNED = ["cell phone", "book", "laptop", "tv", "remote"];
+            const frame = takeSnapshot();
+
+            // Count persons
+            const persons = predictions.filter((p) => p.class === "person" && p.score > 0.6);
+            if (persons.length >= 2) {
+                triggerForceFail("Kadrda bir nechta odam aniqlandi — imtihon to'xtatildi.", frame);
+                return;
+            }
+
+            // Check for banned objects - lower threshold to 0.30
+            for (const pred of predictions) {
+                if (BANNED.includes(pred.class) && pred.score > 0.30) {
+                    // Map COCO labels to Uzbek
+                    // NOTE: COCO often misclassifies daftar/book as "laptop"
+                    // and phone as "remote", so we group them accordingly
+                    const label =
+                        pred.class === "cell phone" || pred.class === "remote"
+                            ? "📱 Telefon"
+                            : pred.class === "book" || pred.class === "laptop"
+                            ? "📚 Kitob / Daftar"
+                            : pred.class === "tv"
+                            ? "🖥️ Ekran / Monitor"
+                            : `🚫 Taqiqlangan narsa`;
+                    triggerForceFail(
+                        `${label} aniqlandi — imtihon to'xtatildi.`,
+                        frame,
+                    );
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn("COCO check error:", e);
+        }
+    }, [triggerForceFail]);
 
     const startAudioMonitoring = useCallback(async () => {
         if (!streamRef.current || audioContextRef.current) return;
-
         try {
             const AudioContextClass =
                 window.AudioContext ||
-                (
-                    window as Window & {
-                        webkitAudioContext?: typeof AudioContext;
-                    }
-                ).webkitAudioContext;
+                (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
             const audioContext = new AudioContextClass();
-
-            if (audioContext.state === "suspended") {
-                await audioContext.resume();
-            }
+            if (audioContext.state === "suspended") await audioContext.resume();
 
             const analyser = audioContext.createAnalyser();
-            const source = audioContext.createMediaStreamSource(
-                streamRef.current,
-            );
-
+            const source = audioContext.createMediaStreamSource(streamRef.current);
             analyser.fftSize = 2048;
             source.connect(analyser);
-
             audioContextRef.current = audioContext;
-            setProctoringStatus("🟢 Kamera va ovoz nazorati faol");
 
             const bufferLength = analyser.fftSize;
             const timeData = new Uint8Array(bufferLength);
@@ -325,7 +348,6 @@ export default function QuestionCard({
 
             audioIntervalRef.current = setInterval(() => {
                 if (!isExamActive.current) return;
-
                 analyser.getByteTimeDomainData(timeData);
                 analyser.getByteFrequencyData(freqData);
 
@@ -334,39 +356,23 @@ export default function QuestionCard({
                     const normalized = (timeData[i] - 128) / 128;
                     totalSquares += normalized * normalized;
                 }
-
-                const volumeValue =
-                    Math.sqrt(totalSquares / bufferLength) * 100;
+                const volumeValue = Math.sqrt(totalSquares / bufferLength) * 100;
 
                 let speechEnergy = 0;
-                const speechStart = 8;
-                const speechEnd = 80;
-                for (let i = speechStart; i < speechEnd; i++) {
-                    speechEnergy += freqData[i];
-                }
-                const speechScore = speechEnergy / (speechEnd - speechStart);
+                for (let i = 8; i < 80; i++) speechEnergy += freqData[i];
+                const speechScore = speechEnergy / 72;
 
                 const isVoiceDetected =
-                    volumeValue > VOICE_VOLUME_THRESHOLD &&
-                    speechScore > VOICE_SPEECH_THRESHOLD;
+                    volumeValue > VOICE_VOLUME_THRESHOLD && speechScore > VOICE_SPEECH_THRESHOLD;
 
                 if (isVoiceDetected) {
-                    if (!voiceStartRef.current) {
-                        voiceStartRef.current = Date.now();
-                    }
-
+                    if (!voiceStartRef.current) voiceStartRef.current = Date.now();
                     const voiceDuration = Date.now() - voiceStartRef.current;
-
                     if (voiceDuration >= VOICE_SUSTAINED_MS) {
-                        registerVoiceViolation(
-                            "Ovoz orqali yordam olish yoki suhbat aniqlandi.",
-                        );
+                        registerVoiceViolation("Ovoz orqali yordam olish yoki suhbat aniqlandi.");
                         return;
                     }
-
-                    setProctoringStatus(
-                        "⚠️ Ovoz aniqlandi — yordam olish taqiqlanadi",
-                    );
+                    setProctoringStatus("⚠️ Ovoz aniqlandi — yordam olish taqiqlanadi");
                 } else if (voiceStartRef.current) {
                     const burstDuration = Date.now() - voiceStartRef.current;
                     if (burstDuration >= VOICE_BURST_MIN_MS) {
@@ -377,41 +383,25 @@ export default function QuestionCard({
                             ),
                             now,
                         ];
-
-                        if (
-                            voiceBurstTimestampsRef.current.length >=
-                            VOICE_BURST_LIMIT
-                        ) {
-                            registerVoiceViolation(
-                                "Takroriy ovoz — yordam olish yoki gaplashish aniqlandi.",
-                            );
+                        if (voiceBurstTimestampsRef.current.length >= VOICE_BURST_LIMIT) {
+                            registerVoiceViolation("Takroriy ovoz — yordam olish yoki gaplashish aniqlandi.");
                             return;
                         }
-
-                        registerViolation(
-                            "Ovoz aniqlandi — yordam olish taqiqlanadi.",
-                            takeSnapshot(),
-                        );
+                        registerViolation("Ovoz aniqlandi — yordam olish taqiqlanadi.", takeSnapshot());
                     }
                     voiceStartRef.current = null;
                 }
             }, 250);
-        } catch (audioErr) {
-        }
+        } catch {}
     }, [registerViolation, registerVoiceViolation]);
 
     const handleAnswerChange = (value: string) => {
         const prevLength = lastAnswerLengthRef.current;
         const addedChars = value.length - prevLength;
-
-        if (addedChars > 30 && prevLength > 0) { // Kuchaytirildi: 40 -> 30
-            triggerForceFail( // Darrov bloklash
-                "Katta hajmdagi matn qo'shildi — nusxa ko'chirish shubhasi.",
-                takeSnapshot(),
-            );
+        if (addedChars > 30 && prevLength > 0) {
+            triggerForceFail("Katta hajmdagi matn qo'shildi — nusxa ko'chirish shubhasi.", takeSnapshot());
             return;
         }
-
         lastAnswerLengthRef.current = value.length;
         setAnswer(value);
     };
@@ -419,20 +409,14 @@ export default function QuestionCard({
     useEffect(() => {
         let isMounted = true;
         permissionRequestTimeRef.current = Date.now();
+
         navigator.mediaDevices
             .getUserMedia({
-                video: {
-                    width: { ideal: 640 },
-                    height: { ideal: 480 },
-                    facingMode: "user",
-                },
+                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
                 audio: true,
             })
             .then(async (mediaStream) => {
-                if (!isMounted) {
-                    mediaStream.getTracks().forEach((track) => track.stop());
-                    return;
-                }
+                if (!isMounted) { mediaStream.getTracks().forEach((t) => t.stop()); return; }
                 streamRef.current = mediaStream;
                 if (videoRef.current) {
                     videoRef.current.srcObject = mediaStream;
@@ -440,56 +424,46 @@ export default function QuestionCard({
                 }
                 setProctoringStatus("🟢 AI Kamera faol");
                 await startAudioMonitoring();
-                setTimeout(() => {
-                    verifyFrame();
+
+                // Wait for video to be ready then init face detection
+                setTimeout(async () => {
+                    if (!isMounted) return;
+                    await initFaceDetection();
+
+                    // Start face detection interval
+                    faceCheckIntervalRef.current = setInterval(() => {
+                        checkFace();
+                    }, FACE_CHECK_INTERVAL_MS);
+
+                    // Init COCO-SSD object detection (phone, book, laptop)
+                    await initObjectDetection();
+                    objCheckIntervalRef.current = setInterval(() => {
+                        checkObjects();
+                    }, 500);
                 }, 2000);
             })
-            .catch(() =>
-                triggerForceFail("Kamera/Mikrofonga ruxsat yo'q.", null),
-            );
+            .catch(() => triggerForceFail("Kamera/Mikrofonga ruxsat yo'q.", null));
 
         const handleVisibilityChange = () => {
             if (!isExamActive.current) return;
-            // ignore brief visibility changes caused by permission prompt
             const now = Date.now();
-            if (
-                permissionRequestTimeRef.current &&
-                now - permissionRequestTimeRef.current < 3000
-            ) {
-                return;
-            }
+            if (permissionRequestTimeRef.current && now - permissionRequestTimeRef.current < 3000) return;
             if (document.hidden) {
-                const currentFrame = takeSnapshot();
-                registerViolation(
-                    "Sahifadan chiqish taqiqlanadi.",
-                    currentFrame,
-                    { immediate: true },
-                );
+                registerViolation("Sahifadan chiqish taqiqlanadi.", takeSnapshot());
             }
         };
 
         const handleWindowBlur = () => {
             if (!isExamActive.current) return;
             const now = Date.now();
-            if (
-                permissionRequestTimeRef.current &&
-                now - permissionRequestTimeRef.current < 3000
-            ) {
-                return;
-            }
-            registerViolation("Imtihon oynasidan chiqildi.", takeSnapshot(), {
-                immediate: true,
-            });
+            if (permissionRequestTimeRef.current && now - permissionRequestTimeRef.current < 3000) return;
+            registerViolation("Imtihon oynasidan chiqildi.", takeSnapshot());
         };
 
         const handlePaste = (event: ClipboardEvent) => {
             if (!isExamActive.current) return;
             event.preventDefault();
-            registerViolation(
-                "Nusxa ko'chirish (paste) taqiqlanadi.",
-                takeSnapshot(),
-                { immediate: true },
-            );
+            registerViolation("Nusxa ko'chirish (paste) taqiqlanadi.", takeSnapshot());
         };
 
         const handleCopy = (event: ClipboardEvent) => {
@@ -511,28 +485,18 @@ export default function QuestionCard({
 
         const handleKeyDown = (event: KeyboardEvent) => {
             if (!isExamActive.current) return;
-
             const key = event.key.toLowerCase();
             const withMeta = event.ctrlKey || event.metaKey;
-
             if (
-                (withMeta &&
-                    ["c", "v", "x", "a", "u", "s", "p"].includes(key)) ||
+                (withMeta && ["c", "v", "x", "a", "u", "s", "p"].includes(key)) ||
                 key === "f12" ||
                 (withMeta && event.shiftKey && ["i", "j", "c"].includes(key))
             ) {
                 event.preventDefault();
                 if (key === "v") {
-                    registerViolation(
-                        "Klaviatura orqali nusxa ko'chirish taqiqlanadi.",
-                        takeSnapshot(),
-                        { immediate: true },
-                    );
+                    registerViolation("Klaviatura orqali nusxa ko'chirish taqiqlanadi.", takeSnapshot());
                 } else {
-                    registerViolation(
-                        "Taqiqlangan klaviatura kombinatsiyasi.",
-                        takeSnapshot(),
-                    );
+                    registerViolation("Taqiqlangan klaviatura kombinatsiyasi.", takeSnapshot());
                 }
             }
         };
@@ -540,12 +504,15 @@ export default function QuestionCard({
         const handleDrop = (event: DragEvent) => {
             if (!isExamActive.current) return;
             event.preventDefault();
-            registerViolation(
-                "Fayl tashlash yoki tashqi matn kiritish taqiqlanadi.",
-                takeSnapshot(),
-                { immediate: true },
-            );
+            registerViolation("Fayl tashlash yoki tashqi matn kiritish taqiqlanadi.", takeSnapshot());
         };
+
+        const focusInterval = setInterval(() => {
+            if (!isExamActive.current) return;
+            if (!document.hasFocus()) {
+                registerViolation("Diqqat imtihon oynasidan uzildi.", takeSnapshot());
+            }
+        }, 3000);
 
         document.addEventListener("visibilitychange", handleVisibilityChange);
         window.addEventListener("blur", handleWindowBlur);
@@ -556,28 +523,10 @@ export default function QuestionCard({
         document.addEventListener("keydown", handleKeyDown);
         document.addEventListener("drop", handleDrop);
 
-        const proctoringInterval = setInterval(() => {
-            verifyFrame();
-        }, PROCTORING_INTERVAL_MS);
-
-        const focusInterval = setInterval(() => {
-            if (!isExamActive.current) return;
-            if (!document.hasFocus()) {
-                registerViolation(
-                    "Diqqat imtihon oynasidan uzildi.",
-                    takeSnapshot(),
-                );
-            }
-        }, 3000);
-
         return () => {
             isMounted = false;
-            clearInterval(proctoringInterval);
             clearInterval(focusInterval);
-            document.removeEventListener(
-                "visibilitychange",
-                handleVisibilityChange,
-            );
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("blur", handleWindowBlur);
             document.removeEventListener("paste", handlePaste);
             document.removeEventListener("copy", handleCopy);
@@ -592,7 +541,10 @@ export default function QuestionCard({
         registerViolation,
         startAudioMonitoring,
         triggerForceFail,
-        verifyFrame,
+        initFaceDetection,
+        checkFace,
+        initObjectDetection,
+        checkObjects,
     ]);
 
     return (
@@ -618,7 +570,7 @@ export default function QuestionCard({
                     <span
                         className={`text-xs font-mono px-3 py-1 rounded-md ${violationsCount > 0 ? "bg-rose-500/10 text-rose-400" : "bg-emerald-500/10 text-emerald-400"}`}
                     >
-                        {proctoringStatus} ({violationsCount}/3)
+                        {proctoringStatus}
                     </span>
                 </div>
             </div>
@@ -651,13 +603,9 @@ export default function QuestionCard({
                 <button
                     onClick={() => {
                         if (!questions || !questions[currentIndex]) return;
-                        verifyFrame();
                         const newHistory = [
                             ...examHistory,
-                            {
-                                question: questions[currentIndex].text,
-                                answer,
-                            },
+                            { question: questions[currentIndex].text, answer },
                         ];
                         examHistoryRef.current = newHistory;
 
@@ -668,24 +616,16 @@ export default function QuestionCard({
                             lastAnswerLengthRef.current = 0;
                         } else {
                             setWarning("😊 Kulib turing, rasmga olamiz...");
-                            setProctoringStatus(
-                                "😊 Kulib turing, rasmga olamiz...",
-                            );
+                            setProctoringStatus("😊 Kulib turing, rasmga olamiz...");
                             const finalPhoto = takeSnapshot();
                             isExamActive.current = false;
                             stopMedia();
-                            onFinishExam(
-                                newHistory,
-                                finalPhoto,
-                                violationsRef.current,
-                            );
+                            onFinishExam(newHistory, finalPhoto, violationsRef.current);
                         }
                     }}
                     className="w-full bg-linear-to-r from-cyan-600 to-blue-600 text-white font-medium py-3 rounded-xl transition-all shadow-lg hover:from-cyan-500 hover:to-blue-500 active:scale-[0.99]"
                 >
-                    {currentIndex === questions.length - 1
-                        ? "Tugatish"
-                        : "Keyingisi"}
+                    {currentIndex === questions.length - 1 ? "Tugatish" : "Keyingisi"}
                 </button>
             </div>
             <canvas ref={canvasRef} className="hidden" />

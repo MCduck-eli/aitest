@@ -84,46 +84,44 @@
                 model: VISION_MODEL,
                 messages: [
                     {
-                        role: "system",
-                        content: `Siz qattiq imtihon proctoring tizimisiz. Kameradan olingan kadrni diqqat bilan tahlil qiling va qoidabuzarliklarni aniqlang.
-
-    QOIDABUZARLIK TURLARI:
-    1. multiple_persons — kadrda 2+ odam, yon tomonda bosh/el ko'rinishi, ortda odam, aks yoki soya
-    2. phone — telefon, smartfon, planshet, quloqchin bilan telefon ishlatish, stolda telefon, qo'lda telefon (qisman ko'rinsa ham)
-    3. no_person — hech kim yo'q, yuz yopiq, kamera yopilgan, faqat orqa fon
-    4. person_swap — imtihon topshirayotgan talaba boshqa odamga almashgan (yuz, jins, yosh, soch, kiyim farqi)
-    5. device_cheat — ikkinchi ekran, noutbuk, planshetdan nusxa ko'chirish, telefon ekraniga qarash, klaviaturadan emas boshqa joydan yozish
-    6. external_help — yon tomondan yordam, ko'rsatib turish, birga javob yozish, qo'l yoki barmoq bilan ishora, yon tomondan suhbat
-    7. reading_material — qog'oz, daftar, kitob, varaq, qo'l/yoqa ustidagi yozuvlardan o'qish
-    8. screen_copy — monitor, televizor, ikkinchi ekrandan o'qish, ekran yonida nusxa ko'chirish harakati
-    9. looking_away — ko'zlar ekrandan uzoqlashgan, bosh o'ng/chapga yoki pastga burilgan, yuz ekrandan uzoq tomonga qaratilgan; agar ko'zlar 2-3 soniya davomida ekrandan uzilgan bo'lsa, bu yuqori ishonch bilan looking_away deb belgilang.
-
-    QATTIQ QOIDALAR:
-    - Telefon qisman ko'rinsa ham phone deb belgilang. Agar telefon ko'rinsa, hatto kichik bo'lsa ham qoldirmang.
-    - Boshqa odamning qo'li, yelkasi, boshi, yuzlari yoki biror kishi yon tomondan ko'rsatilayotgan bo'lsa external_help yoki multiple_persons deb belgilang.
-    - Odamning boshqa tomondan javob ko'rsatishi, ishorasi, birga yozishi, ko'rsatib turishi yoki suhbat qilishi external_help deb belgilang.
-    - Qog'oz/daftar/kitob ko'rinsa reading_material
-    - Ikkinchi ekran, noutbuk, planshet yoki ekran ko'rinsa screen_copy yoki device_cheat
-    - person_swap faqat reference bilan solishtirganda ishonchli bo'lsa
-    - Agar rasmda yordam olish belgisi bo'lsa, hatto aniq bo'lmasa ham external_help ni yuqori ishonch bilan belgilang.
-
-    ${referenceHint}
-
-    Faqat JSON qaytaring:
-    {
-    "violationDetected": boolean,
-    "violationType": "none" | "multiple_persons" | "phone" | "no_person" | "person_swap" | "device_cheat" | "external_help" | "reading_material" | "screen_copy" | "looking_away",
-    "confidence": number,
-    "reason": string,
-    "personDescription": string
-    }`,
-                    },
-                    {
                         role: "user",
                         content: [
                             {
                                 type: "text",
-                                text: "Imtihon paytida olingan kadrni tekshiring. Telefon, yordam, nusxa ko'chirish va odam almashishni qidir.",
+                                text: `Siz qattiq imtihon proctoring tizimisiz. Kameradan olingan kadrni diqqat bilan tahlil qiling va qoidabuzarliklarni aniqlang.
+
+QOIDABUZARLIK TURLARI:
+1. multiple_persons — kadrda 2+ odam, yon tomonda bosh/el ko'rinishi, ortda odam, aks yoki soya
+2. phone — telefon, smartfon, planshet, quloqchin bilan telefon ishlatish, stolda telefon, qo'lda telefon (qisman ko'rinsa ham)
+3. no_person — hech kim yo'q, yuz yopiq, kamera yopilgan, faqat orqa fon
+4. person_swap — imtihon topshirayotgan talaba boshqa odamga almashgan (yuz, jins, yosh, soch, kiyim farqi)
+5. device_cheat — ikkinchi ekran, noutbuk, planshetdan nusxa ko'chirish, telefon ekraniga qarash, klaviaturadan emas boshqa joydan yozish
+6. external_help — yon tomondan yordam, ko'rsatib turish, birga javob yozish, qo'l yoki barmoq bilan ishora, yon tomondan suhbat
+7. reading_material — qog'oz, daftar, kitob, varaq, qo'l/yoqa ustidagi yozuvlardan o'qish
+8. screen_copy — monitor, televizor, ikkinchi ekrandan o'qish, ekran yonida nusxa ko'chirish harakati
+9. looking_away — ko'zlar ekrandan uzoqlashgan, bosh o'ng/chapga yoki pastga burilgan, yuz ekrandan uzoq tomonga qaratilgan; agar ko'zlar 2-3 soniya davomida ekrandan uzilgan bo'lsa, bu yuqori ishonch bilan looking_away deb belgilang.
+
+QATTIQ QOIDALAR:
+- Telefon qisman ko'rinsa ham phone deb belgilang. Agar telefon ko'rinsa, hatto kichik bo'lsa ham qoldirmang.
+- Boshqa odamning qo'li, yelkasi, boshi, yuzlari yoki biror kishi yon tomondan ko'rsatilayotgan bo'lsa external_help yoki multiple_persons deb belgilang.
+- Odamning boshqa tomondan javob ko'rsatishi, ishorasi, birga yozishi, ko'rsatib turishi yoki suhbat qilishi external_help deb belgilang.
+- Qog'oz/daftar/kitob ko'rinsa reading_material
+- Ikkinchi ekran, noutbuk, planshet yoki ekran ko'rinsa screen_copy yoki device_cheat
+- person_swap faqat reference bilan solishtirganda ishonchli bo'lsa
+- Agar rasmda yordam olish belgisi bo'lsa, hatto aniq bo'lmasa ham external_help ni yuqori ishonch bilan belgilang.
+
+${referenceHint}
+
+Faqat JSON formatida qaytaring, hech qanday qo'shimcha so'z va belgilarsiz:
+{
+  "violationDetected": boolean,
+  "violationType": "none" | "multiple_persons" | "phone" | "no_person" | "person_swap" | "device_cheat" | "external_help" | "reading_material" | "screen_copy" | "looking_away",
+  "confidence": number,
+  "reason": string,
+  "personDescription": string
+}
+
+Imtihon paytida olingan ushbu kadrni tekshiring. Telefon, yordam, nusxa ko'chirish va odam almashishni qidir.`,
                             },
                             {
                                 type: "image_url",
@@ -134,11 +132,14 @@
                         ],
                     },
                 ],
-                response_format: { type: "json_object" },
                 temperature: 0.1,
             });
 
-            const content = response.choices[0].message.content || "{}";
+            let content = response.choices[0].message.content || "{}";
+            require('fs').appendFileSync('vision-debug.log', `[${new Date().toISOString()}] RESP: ${content}\n`);
+            
+            // Clean markdown if present
+            content = content.replace(/```json\n?/g, "").replace(/```/g, "").trim();
             const parsed = JSON.parse(content);
 
             const rawType = parsed.violationType || "none";
@@ -193,20 +194,19 @@
             const isCriticalType = CRITICAL_VIOLATIONS.has(resolvedType);
             const violationDetected =
                 Boolean(parsed.violationDetected) ||
-                (isCriticalType && confidence >= 35) ||
-                (resolvedType !== "none" &&
-                    mentionsCriticalCue &&
-                    confidence >= 40);
+                resolvedType !== "none";
 
             return {
                 violationDetected,
                 violationType: resolvedType,
-                confidence: Math.max(confidence, isCriticalType ? 70 : confidence),
+                confidence: Math.max(confidence, isCriticalType ? 90 : 50),
                 reason: parsed.reason || "",
                 personDescription: parsed.personDescription || "",
                 isCritical: isCriticalType,
             };
         } catch (error) {
+            console.error("❌ Groq Vision Error:", error);
+            require('fs').appendFileSync('vision-debug.log', `[${new Date().toISOString()}] ERR: ${error}\n`);
             return {
                 violationDetected: false,
                 violationType: "none",
@@ -268,29 +268,35 @@
                 messages: [
                     {
                         role: "system",
-                        content: `Siz ${subject || "IT"} fanidan test muallifisiz. Quyidagi dars skripti asosida 5 ta test savoli tuzing.${restrictionPrompt}
+                        content: `Siz ${subject || "IT"} fanidan tajribali test muallifisiz. Quyidagi dars skripti asosida 5 ta MURAKKAB va XILMA-XIL test savoli tuzing.${restrictionPrompt}
 
 🔴 MUTLAQO TAQIQLANGAN — bu turdagi savollar HECH QACHON bo'lmasin:
 • "Bu dars/kurs/skript nima haqida?" — YO'Q
 • "N-darsning mavzusi nima?" — YO'Q
 • "Kursning birinchi/ikkinchi mavzusi nima?" — YO'Q
-• "Bu kursda nima o'rganiladi?" — YO'Q
-• Dars raqami, kurs nomi, o'quv rejasi haqida har qanday savol — YO'Q
+• Dars raqami, kurs nomi, o'quv rejasi haqidagi har qanday savol — QAT'IYAN MAN
+• "Qaysi darsda o'rgatiladi?" kabi metasavollar — HECH QACHON
 
-✅ FAQAT BUNDAY SAVOLLAR TUZING (skriptdagi haqiqiy bilimdan):
-• "Excel da yig'indi formulasi qaysi?" → =SUM()
-• "C++ da ekranga chiqarish operatori?" → cout
-• "Ikkilik 1010 o'nlikda qancha?" → 10
-• "Python da listga element qo'shish?" → append()
-• "Blok sxemada shart qaysi shakl bilan belgilanadi?" → Romb
-• "DNS ning vazifasi nima?" → Domen nomini IP ga aylantirish
+✅ FAQAT QUYIDAGI SAVOL TURLARI:
+1. Amaliy savol: "Ushbu kod nimani chiqaradi?" → to'g'ri natijani tanlash
+2. Tahliliy savol: "Qaysi yondashuv samaraliroq va nima uchun?"
+3. Xato topish: "Bu kodda/algoritmda xato qayerda?"
+4. Qo'llash: "Ushbu muammoni hal qilish uchun qaysi usul ishlatiladi?"
+5. Solishtiruv: "A va B usullarining farqi nima?"
+
+MISOMOLLAR (bunday darajadagi savollar tuzing):
+✅ "for loopda break operatori nima vazifani bajaradi?" → Siklni to'xtatadi
+✅ "O(n²) murakkablikdagi algoritmni optimizatsiya qilishda qaysi yondashuv qo'llanadi?"
+✅ "SQL da LEFT JOIN va INNER JOIN farqi nima?"
+✅ "Python da list comprehension qachon lambda'dan afzalroq?"
 
 QOIDALAR:
 - Savollar faqat O'ZBEK TILIDA
 - Har bir savolga 4 ta javob varianti
-- Faqat BITTA to'g'ri javob
-- Savollar aniq va qisqa bo'lsin
-- Javob variantlari bir-biriga o'xshamasin
+- Faqat BITTA to'g'ri javob — qolgan 3 tasi mantiqan o'xshash lekin noto'g'ri bo'lsin
+- Savollar QIYIN va TAHLILIY bo'lsin — oddiy "nima bu?" savollar emas!
+- Javob variantlari bir-biriga o'xshamasin, lekin hammasi mantiqli ko'rinsin
+- MUHIM: Bu sessiya uchun MUTLAQO yangi, oldingi testlarda bo'lmagan savollar!
 
 JSON formatida qaytaring:
 {
@@ -298,7 +304,7 @@ JSON formatida qaytaring:
     {
       "question_text": "Savol matni",
       "question_type": "multiple_choice",
-      "difficulty_level": "medium",
+      "difficulty_level": "hard",
       "options": [
         { "text": "A variant", "isCorrect": false },
         { "text": "To'g'ri javob", "isCorrect": true },
@@ -311,11 +317,11 @@ JSON formatida qaytaring:
                     },
                     {
                         role: "user",
-                        content: scriptInfo,
+                        content: `${scriptInfo}\n\nTASODIFIYLIK KALITI: ${Math.random()}`,
                     },
                 ],
                 response_format: { type: "json_object" },
-                temperature: 0.3,
+                temperature: 0.65,
             });
 
             const content = response.choices[0].message.content || '{"questions": []}';
@@ -388,10 +394,11 @@ export const generateQuestionsByTopic = async (
                     role: "system",
                     content: `Siz test muallifisiz. Quyida darslar kontenti berilgan. Shu kontentdan ${questionCount} ta test savoli tuzing.
 
-🔴 TAQIQLANGAN: dars raqami, dars nomi, kurs haqida savollar
-✅ RUHSAT BERILGAN: formulalar, sintaksis, konversiya, amallar, tushunchalar qisqa savollari
+🔴 TAQIQLANGAN: Dars raqami, dars nomi, kurs haqida savollar, "Qaysi darsda o'rgatiladi?" kabi metama'lumot savollari qat'iyan taqiqlanadi!
+✅ RUHSAT BERILGAN: Faqat sof nazariy va amaliy bilimlar (formulalar, sintaksis, konversiya, amallar).
 
 QOIDALAR: o'zbek tilida, 4 ta variant, bitta to'g'ri javob, qisqa matn
+- MUHIM: Har safar mutlaqo yangi, takrorlanmas, oldingi savollarga o'xshamaydigan turli xil savollar yarating!
 
 Javobni faqat quyidagi JSON formatida qaytaring:
 {
@@ -402,11 +409,11 @@ Javobni faqat quyidagi JSON formatida qaytaring:
                 },
                 {
                     role: "user",
-                    content: `Quyidagi darslar o'tildi. Har bir darsning bilim kontentidan savol tuzing:\n\n${lessonDetails}`,
+                    content: `Quyidagi darslar o'tildi. Har bir darsning bilim kontentidan savol tuzing:\n\n${lessonDetails}\n\nTASODIFIYLIK KALITI: ${Math.random()}`,
                 },
             ],
             response_format: { type: "json_object" },
-            temperature: 0.3,
+            temperature: 0.4,
         });
 
         const content =
