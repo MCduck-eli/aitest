@@ -9,6 +9,38 @@ import { hashPassword } from "../utils/auth";
 import { ApiResponse, TestBank, Question, AnswerOption } from "../types/models";
 import { sendTelegramMessage } from "../service/telegram.service";
 
+// O'quvchilarning oxirgi 24 soatdagi natijalarini olish
+export const getExamResults = async (
+    req: Request,
+    res: Response<ApiResponse>,
+): Promise<void> => {
+    try {
+        if (!req.user || req.user.role !== "admin") {
+            res.status(401).json({ success: false, error: "Not authenticated as admin" });
+            return;
+        }
+
+        const centerId = req.user.trainingCenterId;
+        
+        // Oxirgi 24 soatdagi ma'lumotlarni olamiz
+        const result = await query(`
+            SELECT id, student_name, student_email, score, passed, violation_count, has_suspicious_activity, is_ai_exam, ai_feedback, created_at, encode(final_photo_base64, 'escape') as photo_base64
+            FROM exam_results 
+            WHERE training_center_id = $1 
+              AND created_at >= NOW() - INTERVAL '24 hours'
+            ORDER BY created_at DESC
+        `, [centerId]);
+
+        res.status(200).json({
+            success: true,
+            data: result.rows,
+        });
+    } catch (error: any) {
+        console.error("Get exam results error:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 const generatePassword = (length = 14): string => {
     const chars =
         "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";

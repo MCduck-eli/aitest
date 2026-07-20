@@ -107,7 +107,8 @@ export const initializeDatabase = async (): Promise<void> => {
         await query(`
             CREATE TABLE IF NOT EXISTS exam_results (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                test_bank_id UUID NOT NULL REFERENCES test_banks(id),
+                test_bank_id UUID REFERENCES test_banks(id),
+                training_center_id UUID REFERENCES training_centers(id) ON DELETE CASCADE,
                 student_id UUID REFERENCES users(id) ON DELETE SET NULL,
                 student_name VARCHAR(255) NOT NULL,
                 student_email VARCHAR(255),
@@ -120,8 +121,31 @@ export const initializeDatabase = async (): Promise<void> => {
                 final_photo_base64 BYTEA,
                 started_at TIMESTAMP,
                 submitted_at TIMESTAMP,
+                is_ai_exam BOOLEAN DEFAULT false,
+                ai_feedback TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+        `);
+
+        // Apply alters for existing database schema
+        await query(`
+            ALTER TABLE exam_results
+            ALTER COLUMN test_bank_id DROP NOT NULL;
+        `);
+
+        await query(`
+            ALTER TABLE exam_results
+            ADD COLUMN IF NOT EXISTS training_center_id UUID REFERENCES training_centers(id) ON DELETE CASCADE;
+        `);
+
+        await query(`
+            ALTER TABLE exam_results
+            ADD COLUMN IF NOT EXISTS is_ai_exam BOOLEAN DEFAULT false;
+        `);
+
+        await query(`
+            ALTER TABLE exam_results
+            ADD COLUMN IF NOT EXISTS ai_feedback TEXT;
         `);
 
         // Student Answers
