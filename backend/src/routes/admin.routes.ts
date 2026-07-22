@@ -31,13 +31,9 @@ import {
     deleteLessonScript,
     generateQuestionsFromLessonScript,
     getStudentProgress,
-    getExamResults,
 } from '../controllers/admin.controller';
 
 const router = Router();
-
-// O'quvchilarning AI imtihon natijalari
-router.get('/results', authMiddleware, requireRole(['admin', 'teacher', 'super_admin']), getExamResults);
 
 // Public/Student accessible route - requires auth
 router.get('/lesson-scripts', authMiddleware, requireRole(['admin', 'teacher', 'super_admin', 'student']), getLessonScripts);

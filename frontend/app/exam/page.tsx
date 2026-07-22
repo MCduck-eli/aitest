@@ -77,8 +77,6 @@ export default function ExamPage() {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        studentId: user?.id,
-                        trainingCenterId: user?.training_center_id,
                         studentName: user?.full_name || "Student",
                         examHistory,
                         photoBase64,

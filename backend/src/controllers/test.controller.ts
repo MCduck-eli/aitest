@@ -66,8 +66,6 @@ const handleError = (
 };
 
 interface SubmitFullExamBody {
-    studentId?: string;
-    trainingCenterId?: string;
     studentName?: string;
     examHistory?: any[];
     photo?: string;
@@ -105,7 +103,7 @@ export const submitFullExam = async (
     res: Response,
 ): Promise<void> => {
     try {
-        const { studentId, trainingCenterId, studentName, examHistory, photo, photoBase64, violationCount } =
+        const { studentName, examHistory, photo, photoBase64, violationCount } =
             req.body;
 
         if (!Array.isArray(examHistory) || examHistory.length === 0) {
@@ -148,31 +146,6 @@ export const submitFullExam = async (
             });
         } catch (tgError) {
             console.error("Telegram error:", tgError);
-        }
-
-        // Insert into database
-        try {
-            const studentIdVal = studentId && studentId.length === 36 ? studentId : null;
-            const centerIdVal = trainingCenterId && trainingCenterId.length === 36 ? trainingCenterId : null;
-            
-            await query(`
-                INSERT INTO exam_results (
-                    training_center_id, student_id, student_name, score, 
-                    passed, violation_count, has_suspicious_activity, 
-                    is_ai_exam, ai_feedback
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8)
-            `, [
-                centerIdVal, 
-                studentIdVal, 
-                studentName || "Ismsiz Talaba", 
-                finalScore, 
-                status === "passed", 
-                totalViolations, 
-                isSuspicious,
-                evaluation.overallFeedback || "Baholash yakunlandi."
-            ]);
-        } catch (dbError) {
-            console.error("DB Insert error for exam_results:", dbError);
         }
 
         res.status(200).json({ success: true, evaluation, isSuspicious });
