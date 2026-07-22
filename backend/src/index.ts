@@ -2,6 +2,7 @@ import app from "./server";
 import dotenv from "dotenv";
 import { initTelegramBot } from "./service/telegram.service";
 import { initializeDatabase } from "./config/init-db";
+import { startCleanupJob } from "./service/cleanup.service";
 
 dotenv.config();
 
@@ -13,6 +14,9 @@ const startServer = async () => {
         console.log("🗄️  Initializing database...");
         await initializeDatabase();
         console.log("✅ Database initialized");
+
+        // Start background tasks
+        startCleanupJob();
 
         app.listen(PORT, () => {
             console.log(
@@ -34,20 +38,3 @@ const startServer = async () => {
 startServer();
 
 // Trigger reload
-
-// Auto-cleanup for 24-hour old exam results (runs every hour)
-import { query } from "./config/database";
-setInterval(async () => {
-    try {
-        const res = await query(`
-            DELETE FROM exam_results 
-            WHERE is_ai_exam = true 
-              AND created_at < NOW() - INTERVAL '24 hours'
-        `);
-        if (res.rowCount && res.rowCount > 0) {
-            console.log(`🧹 Auto-cleanup: Deleted ${res.rowCount} old exam results.`);
-        }
-    } catch (err) {
-        console.error("Auto-cleanup failed:", err);
-    }
-}, 1000 * 60 * 60); // 1 hour
