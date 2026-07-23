@@ -71,7 +71,7 @@ export const initializeDatabase = async (): Promise<void> => {
                 total_questions INT DEFAULT 0,
                 passing_score INT DEFAULT 60,
                 is_published BOOLEAN DEFAULT false,
-                created_by UUID NOT NULL REFERENCES users(id),
+                created_by UUID REFERENCES users(id) ON DELETE SET NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
@@ -218,7 +218,7 @@ export const initializeDatabase = async (): Promise<void> => {
                 content TEXT NOT NULL,
                 test_bank_id UUID REFERENCES test_banks(id) ON DELETE SET NULL,
                 topics JSONB DEFAULT '[]'::jsonb,
-                created_by UUID NOT NULL REFERENCES users(id),
+                created_by UUID REFERENCES users(id) ON DELETE SET NULL,
                 is_active BOOLEAN DEFAULT true,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -254,6 +254,27 @@ export const initializeDatabase = async (): Promise<void> => {
         await query(`CREATE INDEX IF NOT EXISTS idx_study_groups_training_center ON study_groups(training_center_id);`);
         await query(`CREATE INDEX IF NOT EXISTS idx_lesson_scripts_training_center ON lesson_scripts(training_center_id);`);
         await query(`CREATE INDEX IF NOT EXISTS idx_student_progress_training_center ON student_progress(training_center_id);`);
+
+        // Fix foreign keys to allow user deletion without deleting test banks / lesson scripts
+        await query(`
+            ALTER TABLE lesson_scripts
+            ALTER COLUMN created_by DROP NOT NULL;
+        `);
+        await query(`
+            ALTER TABLE lesson_scripts
+            DROP CONSTRAINT IF EXISTS lesson_scripts_created_by_fkey,
+            ADD CONSTRAINT lesson_scripts_created_by_fkey FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
+        `);
+
+        await query(`
+            ALTER TABLE test_banks
+            ALTER COLUMN created_by DROP NOT NULL;
+        `);
+        await query(`
+            ALTER TABLE test_banks
+            DROP CONSTRAINT IF EXISTS test_banks_created_by_fkey,
+            ADD CONSTRAINT test_banks_created_by_fkey FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
+        `);
 
         const masterAdminEmail = process.env.MASTER_ADMIN_EMAIL?.trim() || 'superadmin@aitest.com';
         const masterAdminPassword = process.env.MASTER_ADMIN_PASSWORD?.trim() || 'SuperAdmin123!';
