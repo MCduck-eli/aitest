@@ -17,7 +17,7 @@ export const metadata: Metadata = {
         "AiTest Halikov — O'quvchilar uchun sun'iy intellekt nazorati ostida onlayn test topshirish platformasi. O'quv markazlari uchun bilimni xolis va aniq baholash tizimi.",
     keywords: ["aitest-halikov", "aitest halikov", "aitest", "halikov test"],
     verification: {
-        google: "OuRjXr0lK6lZxY7k-Z7QzgPqJxuFh6J58h81AhO4MXs",
+        google: "xuh_Bj1w4NoxQDiNuuG1yIVzivjk60L0GcwNe0LKVf8",
     },
     icons: {
         icon: "/logo.png",
