@@ -26,13 +26,13 @@ export function CssParticles() {
 
   if (!isMounted) return null;
 
-  const particles = Array.from({ length: 50 }, (_, i) => ({
+  const particles = Array.from({ length: 150 }, (_, i) => ({
     id: i,
-    size: Math.random() * 4 + 2,
+    size: Math.random() * 2 + 1,
     x: Math.random() * 100,
     y: Math.random() * 100,
-    duration: Math.random() * 20 + 10,
-    delay: Math.random() * 5,
+    duration: Math.random() * 30 + 20,
+    delay: Math.random() * 10,
   }));
 
   return (
@@ -70,15 +70,15 @@ export function CssParticles() {
       {particles.map((particle) => (
         <div
           key={particle.id}
-          className="absolute rounded-full bg-purple-400/30"
+          className="absolute rounded-full bg-purple-400/50 shadow-[0_0_8px_rgba(168,85,247,0.6)]"
           style={{
             width: `${particle.size}px`,
             height: `${particle.size}px`,
             left: `${particle.x}%`,
             top: `${particle.y}%`,
-            opacity: 0.5,
-            transform: `translate(${mousePosition.x * 20}px, ${mousePosition.y * 20}px)`,
-            transition: "transform 0.2s ease-out, opacity 0.3s ease-in-out",
+            opacity: 0.7,
+            transform: `translate(${mousePosition.x * 15}px, ${mousePosition.y * 15}px)`,
+            transition: "transform 0.3s ease-out, opacity 0.3s ease-in-out",
             animation: `float ${particle.duration}s ease-in-out infinite`,
             animationDelay: `${particle.delay}s`,
           }}
@@ -89,11 +89,11 @@ export function CssParticles() {
         @keyframes float {
           0%, 100% {
             transform: translate(0, 0) scale(1);
-            opacity: 0.3;
+            opacity: 0.5;
           }
           50% {
-            transform: translate(0, -20px) scale(1.5);
-            opacity: 0.8;
+            transform: translate(0, -10px) scale(1.2);
+            opacity: 0.9;
           }
         }
       `}</style>
