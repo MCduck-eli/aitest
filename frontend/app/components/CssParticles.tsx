@@ -70,15 +70,15 @@ export function CssParticles() {
       {particles.map((particle) => (
         <div
           key={particle.id}
-          className="absolute rounded-full bg-purple-400/50 shadow-[0_0_8px_rgba(168,85,247,0.6)]"
+          className="absolute rounded-full bg-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.8)]"
           style={{
             width: `${particle.size}px`,
             height: `${particle.size}px`,
             left: `${particle.x}%`,
             top: `${particle.y}%`,
-            opacity: 0.7,
-            transform: `translate(${mousePosition.x * 15}px, ${mousePosition.y * 15}px)`,
-            transition: "transform 0.3s ease-out, opacity 0.3s ease-in-out",
+            opacity: 0.95,
+            transform: `translate(${mousePosition.x * 5}px, ${mousePosition.y * 5}px)`,
+            transition: "transform 0.5s ease-out, opacity 0.3s ease-in-out",
             animation: `float ${particle.duration}s ease-in-out infinite`,
             animationDelay: `${particle.delay}s`,
           }}
