@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Orbitron } from "next/font/google";
 import "./globals.css";
-// import { SceneWrapper } from "./components/SceneWrapper";
+import { CssParticles } from "./components/CssParticles";
 import { PageTransition } from "./components/page-transition";
 
 const orbitron = Orbitron({ subsets: ["latin"], variable: "--font-orbitron" });
@@ -40,7 +40,7 @@ export default function RootLayout({
             className={`${geistSans.variable} ${geistMono.variable} ${orbitron.variable} h-full antialiased`}
         >
             <body className="min-h-screen relative overflow-x-hidden bg-slate-950 text-slate-200">
-                {/* <SceneWrapper /> */}
+                <CssParticles />
                 <div className="relative z-10 w-full">
                     <PageTransition>{children}</PageTransition>
                 </div>
