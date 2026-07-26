@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authMiddleware, requireRole } from "../middleware/auth";
 import {
     login,
+    refreshToken,
     getCurrentUser,
     studentLogin,
     getTrainingCenters,
@@ -13,6 +14,7 @@ const router = Router();
 
 // Auth routes (public)
 router.post('/login', login);
+router.post('/refresh', refreshToken);
 router.post('/student-login', studentLogin);
 router.get('/training-centers', getTrainingCenters);
 router.get('/training-centers/:id/subjects', getSubjectsByTrainingCenter);

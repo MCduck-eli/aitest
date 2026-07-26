@@ -400,12 +400,12 @@ export const refreshToken = async (
                 email: payload.email,
                 role: payload.role,
             },
-            "15m",
+            "1m",
         );
 
         res.cookie("access_token", newAccessToken, {
             ...COOKIE_OPTIONS,
-            maxAge: 15 * 60 * 1000,
+            maxAge: 1 * 60 * 1000,
         });
 
         res.json({
