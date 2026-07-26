@@ -3,13 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateQuestionsByTopic = exports.generateQuestionsFromScript = exports.evaluateFullExam = exports.checkProctoringImage = void 0;
+exports.generateQuestionsByTopic = exports.extractTopicsFromScript = exports.generateQuestionsFromScript = exports.evaluateFullExam = exports.checkProctoringImage = void 0;
 const openai_1 = __importDefault(require("openai"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const groqClient = new openai_1.default({
     baseURL: "https://api.groq.com/openai/v1",
     apiKey: process.env.GROQ_API_KEY,
+    timeout: 30000,
 });
 const GROQ_MODEL = "llama-3.3-70b-versatile";
 const VISION_MODEL = process.env.GROQ_VISION_MODEL ??
@@ -76,8 +77,11 @@ const checkProctoringImage = async (photoBase64, referenceDescription) => {
             model: VISION_MODEL,
             messages: [
                 {
-                    role: "system",
-                    content: `Siz qattiq imtihon proctoring tizimisiz. Kameradan olingan kadrni diqqat bilan tahlil qiling va qoidabuzarliklarni aniqlang.
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: `Siz qattiq imtihon proctoring tizimisiz. Kameradan olingan kadrni diqqat bilan tahlil qiling va qoidabuzarliklarni aniqlang.
 
 QOIDABUZARLIK TURLARI:
 1. multiple_persons — kadrda 2+ odam, yon tomonda bosh/el ko'rinishi, ortda odam, aks yoki soya
@@ -101,21 +105,16 @@ QATTIQ QOIDALAR:
 
 ${referenceHint}
 
-Faqat JSON qaytaring:
+Faqat JSON formatida qaytaring, hech qanday qo'shimcha so'z va belgilarsiz:
 {
   "violationDetected": boolean,
   "violationType": "none" | "multiple_persons" | "phone" | "no_person" | "person_swap" | "device_cheat" | "external_help" | "reading_material" | "screen_copy" | "looking_away",
   "confidence": number,
   "reason": string,
   "personDescription": string
-}`,
-                },
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "text",
-                            text: "Imtihon paytida olingan kadrni tekshiring. Telefon, yordam, nusxa ko'chirish va odam almashishni qidir.",
+}
+
+Imtihon paytida olingan ushbu kadrni tekshiring. Telefon, yordam, nusxa ko'chirish va odam almashishni qidir.`,
                         },
                         {
                             type: "image_url",
@@ -126,10 +125,12 @@ Faqat JSON qaytaring:
                     ],
                 },
             ],
-            response_format: { type: "json_object" },
             temperature: 0.1,
         });
-        const content = response.choices[0].message.content || "{}";
+        let content = response.choices[0].message.content || "{}";
+        require('fs').appendFileSync('vision-debug.log', `[${new Date().toISOString()}] RESP: ${content}\n`);
+        // Clean markdown if present
+        content = content.replace(/```json\n?/g, "").replace(/```/g, "").trim();
         const parsed = JSON.parse(content);
         const rawType = parsed.violationType || "none";
         const violationType = VALID_VIOLATION_TYPES.has(rawType)
@@ -172,21 +173,19 @@ Faqat JSON qaytaring:
         }
         const isCriticalType = CRITICAL_VIOLATIONS.has(resolvedType);
         const violationDetected = Boolean(parsed.violationDetected) ||
-            (isCriticalType && confidence >= 35) ||
-            (resolvedType !== "none" &&
-                mentionsCriticalCue &&
-                confidence >= 40);
+            resolvedType !== "none";
         return {
             violationDetected,
             violationType: resolvedType,
-            confidence: Math.max(confidence, isCriticalType ? 70 : confidence),
+            confidence: Math.max(confidence, isCriticalType ? 90 : 50),
             reason: parsed.reason || "",
             personDescription: parsed.personDescription || "",
             isCritical: isCriticalType,
         };
     }
     catch (error) {
-        console.error("Proctoring tahlil xatosi:", error);
+        console.error("❌ Groq Vision Error:", error);
+        require('fs').appendFileSync('vision-debug.log', `[${new Date().toISOString()}] ERR: ${error}\n`);
         return {
             violationDetected: false,
             violationType: "none",
@@ -220,7 +219,6 @@ const evaluateFullExam = async (examHistory) => {
         };
     }
     catch (error) {
-        console.error("Baholash xatosi:", error);
         return {
             status: "error",
             message: "Baholashni amalga oshirib bo'lmadi",
@@ -228,29 +226,59 @@ const evaluateFullExam = async (examHistory) => {
     }
 };
 exports.evaluateFullExam = evaluateFullExam;
-const generateQuestionsFromScript = async (lessonScript, subject, studyGroup) => {
+const generateQuestionsFromScript = async (lessonScript, subject, studyGroup, selectedTopic) => {
     try {
+        const restrictionPrompt = selectedTopic
+            ? `\n⚠️ CHEKLOV: Faqat "${selectedTopic}" mavzusigacha bo'lgan qismdan savol tuz.`
+            : "";
+        const scriptInfo = lessonScript && lessonScript.trim().length > 50
+            ? `DARS SKRIPTI MATNI:\n${lessonScript}`
+            : `DARS MAVZUSI: ${subject || "IT texnologiyalar"}\nEslat: Skript qisqa, umumiy bilimlar asosida savol tuz.`;
         const response = await groqClient.chat.completions.create({
             model: GROQ_MODEL,
             messages: [
                 {
                     role: "system",
-                    content: `Siz professional o'qituvchisi va test muallifisiz. Quyidagi dars skripti asosida ${subject || "fan"} bo'yicha ${studyGroup || "guruh"} uchun test savollarini yarating.
-Qoidalar:
-- Savollar faqat o'zbek tilida bo'lsin.
-- Har bir savol uchun 4 ta javob variant bering.
-- Faqat bitta to'g'ri javob bo'lsin.
-- Savollar oddiy, aniq va dars skripti mazmuniga mos bo'lsin.
-- Javobni faqat JSON formatida qaytaring.
+                    content: `Siz ${subject || "IT"} fanidan tajribali test muallifisiz. Quyidagi dars skripti asosida 5 ta MURAKKAB va XILMA-XIL test savoli tuzing.${restrictionPrompt}
+
+🔴 MUTLAQO TAQIQLANGAN — bu turdagi savollar HECH QACHON bo'lmasin:
+• "Bu dars/kurs/skript nima haqida?" — YO'Q
+• "N-darsning mavzusi nima?" — YO'Q
+• "Kursning birinchi/ikkinchi mavzusi nima?" — YO'Q
+• Dars raqami, kurs nomi, o'quv rejasi haqidagi har qanday savol — QAT'IYAN MAN
+• "Qaysi darsda o'rgatiladi?" kabi metasavollar — HECH QACHON
+
+✅ FAQAT QUYIDAGI SAVOL TURLARI:
+1. Amaliy savol: "Ushbu kod nimani chiqaradi?" → to'g'ri natijani tanlash
+2. Tahliliy savol: "Qaysi yondashuv samaraliroq va nima uchun?"
+3. Xato topish: "Bu kodda/algoritmda xato qayerda?"
+4. Qo'llash: "Ushbu muammoni hal qilish uchun qaysi usul ishlatiladi?"
+5. Solishtiruv: "A va B usullarining farqi nima?"
+
+MISOMOLLAR (bunday darajadagi savollar tuzing):
+✅ "for loopda break operatori nima vazifani bajaradi?" → Siklni to'xtatadi
+✅ "O(n²) murakkablikdagi algoritmni optimizatsiya qilishda qaysi yondashuv qo'llanadi?"
+✅ "SQL da LEFT JOIN va INNER JOIN farqi nima?"
+✅ "Python da list comprehension qachon lambda'dan afzalroq?"
+
+QOIDALAR:
+- Savollar faqat O'ZBEK TILIDA
+- Har bir savolga 4 ta javob varianti
+- Faqat BITTA to'g'ri javob — qolgan 3 tasi mantiqan o'xshash lekin noto'g'ri bo'lsin
+- Savollar QIYIN va TAHLILIY bo'lsin — oddiy "nima bu?" savollar emas!
+- Javob variantlari bir-biriga o'xshamasin, lekin hammasi mantiqli ko'rinsin
+- MUHIM: Bu sessiya uchun MUTLAQO yangi, oldingi testlarda bo'lmagan savollar!
+
+JSON formatida qaytaring:
 {
   "questions": [
     {
       "question_text": "Savol matni",
       "question_type": "multiple_choice",
-      "difficulty_level": "easy",
+      "difficulty_level": "hard",
       "options": [
         { "text": "A variant", "isCorrect": false },
-        { "text": "B variant", "isCorrect": true },
+        { "text": "To'g'ri javob", "isCorrect": true },
         { "text": "C variant", "isCorrect": false },
         { "text": "D variant", "isCorrect": false }
       ]
@@ -260,56 +288,94 @@ Qoidalar:
                 },
                 {
                     role: "user",
-                    content: `Dars skripti:\n${lessonScript}`,
+                    content: `${scriptInfo}\n\nTASODIFIYLIK KALITI: ${Math.random()}`,
                 },
             ],
             response_format: { type: "json_object" },
-            temperature: 0.2,
+            temperature: 0.65,
         });
         const content = response.choices[0].message.content || '{"questions": []}';
         const parsed = JSON.parse(content);
         return Array.isArray(parsed.questions) ? parsed.questions : [];
     }
     catch (error) {
-        console.error("Skriptdan savol generatsiya xatosi:", error);
         return [];
     }
 };
 exports.generateQuestionsFromScript = generateQuestionsFromScript;
-const generateQuestionsByTopic = async (lessonId, lessons, topics) => {
+const extractTopicsFromScript = async (lessonScript) => {
     try {
-        const lessonSummary = lessons
-            .map((lesson) => `${lesson.id}-dars (${lesson.name}): ${lesson.topics.join(", ")}`)
-            .join("\n");
-        const questionCount = Math.min(Math.max(lessons.length * 2, 5), 15);
         const response = await groqClient.chat.completions.create({
             model: GROQ_MODEL,
             messages: [
                 {
                     role: "system",
-                    content: `Siz professional o'qituvchisiz. Talaba ${lessonId}-darsgacha bo'lgan barcha o'tilgan mavzulardan aralash imtihon topshiradi.
-Quyidagi darslar va mavzulardan ${questionCount} ta aniq, uzbek tilida, oddiy va to'g'ri tuzilgan test savollarini yarating.
-Qoidalar:
-- Savollar faqat o'zbek tilida bo'lsin.
-- Har bir savol aniq, qisqa va tushunarli bo'lsin.
-- Savol matni grammatik jihatdan to'g'ri bo'lsin; noaniq yoki aralash iboralar ishlatmang.
-- Har bir savolning 4 ta javob variantini bering.
-- Faqat bitta to'g'ri javob bo'lsin.
-- Savollar turli darslardan aralash bo'lsin, lekin har biri mavzuga mos bo'lsin.
-- Agar savol ko'p tanlovli bo'lsa, uni qayta yozib aniqroq qiling.
-Javobni faqat va faqat quyidagi JSON formatida qaytaring:
+                    content: `Siz professional o'qituvchisiz. Berilgan dars skriptidan (mavzular va dars rejalaridan) tartiblangan darslar/mavzular ro'yxatini ajratib oling.
+    Har bir dars/mavzu uchun quyidagi JSON formatida faqat JSON javob qaytaring. Boshqa hech qanday matn qo'shmang.
+    JSON formati:
+    {
+    "topics": [
+        {
+        "id": 1,
+        "name": "1-dars: Mavzu nomi",
+        "description": "Mavzu bo'yicha qisqacha tavsif yoki reja"
+        }
+    ]
+    }`,
+                },
+                {
+                    role: "user",
+                    content: `Dars skripti:\n${lessonScript}`,
+                },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.1,
+        });
+        const content = response.choices[0].message.content || '{"topics": []}';
+        const parsed = JSON.parse(content);
+        return Array.isArray(parsed.topics) ? parsed.topics : [];
+    }
+    catch (error) {
+        return [];
+    }
+};
+exports.extractTopicsFromScript = extractTopicsFromScript;
+const generateQuestionsByTopic = async (lessonId, lessons, topics) => {
+    try {
+        // Har bir dars uchun haqiqiy bilim kontenti bilan batafsil blok
+        const lessonDetails = lessons
+            .map((lesson) => `=== ${lesson.id}-DARS: ${lesson.name.replace(/^\d+-dars:\s*/i, '')} ===\n` +
+            `Mavzular: ${lesson.topics.join(", ")}\n` +
+            (lesson.keyKnowledge ? `Bu darsda o'rganilgan bilimlar:\n${lesson.keyKnowledge.trim()}` : ""))
+            .join("\n\n");
+        const questionCount = 5;
+        const response = await groqClient.chat.completions.create({
+            model: GROQ_MODEL,
+            messages: [
+                {
+                    role: "system",
+                    content: `Siz test muallifisiz. Quyida darslar kontenti berilgan. Shu kontentdan ${questionCount} ta test savoli tuzing.
+
+🔴 TAQIQLANGAN: Dars raqami, dars nomi, kurs haqida savollar, "Qaysi darsda o'rgatiladi?" kabi metama'lumot savollari qat'iyan taqiqlanadi!
+✅ RUHSAT BERILGAN: Faqat sof nazariy va amaliy bilimlar (formulalar, sintaksis, konversiya, amallar).
+
+QOIDALAR: o'zbek tilida, 4 ta variant, bitta to'g'ri javob, qisqa matn
+- MUHIM: Har safar mutlaqo yangi, takrorlanmas, oldingi savollarga o'xshamaydigan turli xil savollar yarating!
+
+Javobni faqat quyidagi JSON formatida qaytaring:
 {
     "questions": [
-        { "id": 1, "text": "Savol matni", "options": ["A", "B", "C", "D"], "correct": 0 }
+        { "id": 1, "text": "Savol matni", "options": ["A variant", "B variant", "C variant", "D variant"], "correct": 0 }
     ]
 }`,
                 },
                 {
                     role: "user",
-                    content: `O'tilgan darslar:\n${lessonSummary}\n\nMavzular ro'yxati:\n${topics.join(", ")}`,
+                    content: `Quyidagi darslar o'tildi. Har bir darsning bilim kontentidan savol tuzing:\n\n${lessonDetails}\n\nTASODIFIYLIK KALITI: ${Math.random()}`,
                 },
             ],
             response_format: { type: "json_object" },
+            temperature: 0.4,
         });
         const content = response.choices[0].message.content || '{"questions": []}';
         const parsed = JSON.parse(content);
@@ -335,7 +401,6 @@ Javobni faqat va faqat quyidagi JSON formatida qaytaring:
         });
     }
     catch (error) {
-        console.error("Savol generatsiya xatosi:", error);
         return [];
     }
 };

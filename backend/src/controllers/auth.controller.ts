@@ -230,7 +230,7 @@ export const login = async (
                     email: masterEmail,
                     role: "super_admin",
                 },
-                "15m",
+                "1m",
             );
 
             const refreshToken = generateRefreshToken(
@@ -245,7 +245,7 @@ export const login = async (
 
             res.cookie("access_token", accessToken, {
                 ...COOKIE_OPTIONS,
-                maxAge: 15 * 60 * 1000,
+                maxAge: 1 * 60 * 1000,
             });
             res.cookie("refresh_token", refreshToken, {
                 ...COOKIE_OPTIONS,
@@ -325,7 +325,7 @@ export const login = async (
                 email: user.email,
                 role: user.role,
             },
-            "15m",
+            "1m",
         );
 
         const refreshToken = generateRefreshToken(
@@ -340,7 +340,7 @@ export const login = async (
 
         res.cookie("access_token", accessToken, {
             ...COOKIE_OPTIONS,
-            maxAge: 15 * 60 * 1000,
+            maxAge: 1 * 60 * 1000,
         });
         res.cookie("refresh_token", refreshToken, {
             ...COOKIE_OPTIONS,

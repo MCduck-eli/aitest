@@ -37,7 +37,6 @@ app.use(express_1.default.json({
         }
     },
 }));
-// Routes
 app.use("/api/v1/auth", auth_routes_1.default);
 app.use("/api/v1/admin", admin_routes_1.default);
 app.use("/api/v1/results", results_routes_1.default);

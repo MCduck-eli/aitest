@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
-import { API_BASE_URL } from '@/lib/api';
+import { apiFetch } from '@/lib/apiClient';
 
 export default function AdminDashboard() {
     const router = useRouter();
@@ -49,44 +49,32 @@ export default function AdminDashboard() {
         const fetchData = async () => {
             try {
                 // Fetch users
-                const usersResponse = await fetch(`${API_BASE_URL}/api/v1/admin/users/list`, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                });
+                const usersResponse = await apiFetch('/api/v1/admin/users/list');
                 const usersData = await usersResponse.json();
                 if (usersData.success) setUsers(usersData.data);
 
                 // Fetch subjects
-                const subjectsResponse = await fetch(`${API_BASE_URL}/api/v1/admin/subjects`, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                });
+                const subjectsResponse = await apiFetch('/api/v1/admin/subjects');
                 const subjectsData = await subjectsResponse.json();
                 if (subjectsData.success) setSubjects(subjectsData.data);
 
                 // Fetch groups
-                const groupsResponse = await fetch(`${API_BASE_URL}/api/v1/admin/groups`, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                });
+                const groupsResponse = await apiFetch('/api/v1/admin/groups');
                 const groupsData = await groupsResponse.json();
                 if (groupsData.success) setGroups(groupsData.data);
 
                 // Fetch lesson scripts
-                const scriptsResponse = await fetch(`${API_BASE_URL}/api/v1/admin/lesson-scripts`, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                });
+                const scriptsResponse = await apiFetch('/api/v1/admin/lesson-scripts');
                 const scriptsData = await scriptsResponse.json();
                 if (scriptsData.success) setLessonScripts(scriptsData.data);
 
                 // Fetch student progress
-                const progressResponse = await fetch(`${API_BASE_URL}/api/v1/admin/student-progress`, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                });
+                const progressResponse = await apiFetch('/api/v1/admin/student-progress');
                 const progressData = await progressResponse.json();
                 if (progressData.success) setStudentProgress(progressData.data);
 
                 // Fetch subject groups
-                const subjectGroupsResponse = await fetch(`${API_BASE_URL}/api/v1/admin/subject-groups`, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                });
+                const subjectGroupsResponse = await apiFetch('/api/v1/admin/subject-groups');
                 const subjectGroupsData = await subjectGroupsResponse.json();
                 if (subjectGroupsData.success) setSubjectGroups(subjectGroupsData.data);
             } catch (error) {
@@ -105,12 +93,8 @@ export default function AdminDashboard() {
         setCreatedCredentials(null);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/users`, {
+            const response = await apiFetch('/api/v1/admin/users', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
                 body: JSON.stringify(createForm),
             });
 
@@ -134,9 +118,7 @@ export default function AdminDashboard() {
 
     const fetchUsers = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/list`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
+            const response = await apiFetch('/api/v1/admin/users/list');
             const data = await response.json();
             if (data.success) setUsers(data.data);
         } catch (error) {
@@ -147,9 +129,8 @@ export default function AdminDashboard() {
         if (!confirm('Foydalanuvchini o\'chirmoqchimisiz?')) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${id}`, {
+            const response = await apiFetch(`/api/v1/admin/users/${id}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
             });
 
             if (response.ok) {
@@ -167,9 +148,8 @@ export default function AdminDashboard() {
         if (!confirm('Barcha adminlarni o\'chirmoqchimisiz? Bu amalni qaytarib bo\'lmaydi!')) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/all`, {
+            const response = await apiFetch('/api/v1/admin/users/all', {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
             });
 
             const data = await response.json();
@@ -189,9 +169,8 @@ export default function AdminDashboard() {
         if (!confirm(`${email} uchun yangi parol generatsiya qilinsinmi?`)) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/users/${id}/reset-password`, {
+            const response = await apiFetch(`/api/v1/admin/users/${id}/reset-password`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
             });
 
             const data = await response.json();
@@ -211,12 +190,8 @@ export default function AdminDashboard() {
         setCreatingSubject(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/subjects`, {
+            const response = await apiFetch('/api/v1/admin/subjects', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
                 body: JSON.stringify(subjectForm),
             });
 
@@ -240,9 +215,8 @@ export default function AdminDashboard() {
         if (!confirm('Fanni o\'chirmoqchimisiz?')) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/subjects/${id}`, {
+            const response = await apiFetch(`/api/v1/admin/subjects/${id}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
             });
 
             if (response.ok) {
@@ -257,11 +231,8 @@ export default function AdminDashboard() {
         e.preventDefault();
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/subject-groups`, {
+            const response = await apiFetch('/api/v1/admin/subject-groups', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(linkingForm),
             });
 
@@ -283,9 +254,8 @@ export default function AdminDashboard() {
         if (!confirm('Bog\'lanishni o\'chirmoqchimisiz?')) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/subject-groups/${id}`, {
+            const response = await apiFetch(`/api/v1/admin/subject-groups/${id}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
             });
 
             if (response.ok) {
@@ -301,12 +271,8 @@ export default function AdminDashboard() {
         setCreatingGroup(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/groups`, {
+            const response = await apiFetch('/api/v1/admin/groups', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
                 body: JSON.stringify(groupForm),
             });
 
@@ -330,9 +296,8 @@ export default function AdminDashboard() {
         if (!confirm('Guruhni o\'chirmoqchimisiz?')) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/groups/${id}`, {
+            const response = await apiFetch(`/api/v1/admin/groups/${id}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
             });
 
             if (response.ok) {
@@ -348,11 +313,8 @@ export default function AdminDashboard() {
         setCreatingScript(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/lesson-scripts`, {
+            const response = await apiFetch('/api/v1/admin/lesson-scripts', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(scriptForm),
             });
 
@@ -377,9 +339,8 @@ export default function AdminDashboard() {
         if (!confirm('Dars skriptini o\'chirmoqchimisiz?')) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/lesson-scripts/${id}`, {
+            const response = await apiFetch(`/api/v1/admin/lesson-scripts/${id}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
             });
 
             if (response.ok) {
@@ -405,9 +366,8 @@ export default function AdminDashboard() {
         if (!confirm('AI savollar generatsiya qilinsinmi?')) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/admin/lesson-scripts/${id}/generate-questions`, {
+            const response = await apiFetch(`/api/v1/admin/lesson-scripts/${id}/generate-questions`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
             });
 
             const data = await response.json();
@@ -426,30 +386,22 @@ export default function AdminDashboard() {
     const fetchData = async () => {
         try {
             // Fetch users
-            const usersResponse = await fetch(`${API_BASE_URL}/api/v1/admin/users/list`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
+            const usersResponse = await apiFetch('/api/v1/admin/users/list');
             const usersData = await usersResponse.json();
             if (usersData.success) setUsers(usersData.data);
 
             // Fetch subjects
-            const subjectsResponse = await fetch(`${API_BASE_URL}/api/v1/admin/subjects`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
+            const subjectsResponse = await apiFetch('/api/v1/admin/subjects');
             const subjectsData = await subjectsResponse.json();
             if (subjectsData.success) setSubjects(subjectsData.data);
 
             // Fetch groups
-            const groupsResponse = await fetch(`${API_BASE_URL}/api/v1/admin/groups`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
+            const groupsResponse = await apiFetch('/api/v1/admin/groups');
             const groupsData = await groupsResponse.json();
             if (groupsData.success) setGroups(groupsData.data);
 
             // Fetch lesson scripts
-            const scriptsResponse = await fetch(`${API_BASE_URL}/api/v1/admin/lesson-scripts`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
+            const scriptsResponse = await apiFetch('/api/v1/admin/lesson-scripts');
             const scriptsData = await scriptsResponse.json();
             if (scriptsData.success) setLessonScripts(scriptsData.data);
         } catch (error) {
