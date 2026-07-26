@@ -300,8 +300,6 @@ export const createAdminUser = async (
                 created_test_bank_id: createdTestBankId,
             },
         });
-
-        // Send credentials to super_admin via Telegram
         if (
             req.user.role === "super_admin" &&
             process.env.SUPER_ADMIN_CHAT_ID

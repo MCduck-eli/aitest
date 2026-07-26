@@ -54,7 +54,7 @@ export default function AdminAuthPage() {
                 return;
             }
 
-            setAuth(data.data.token, data.data.user);
+            setAuth(data.data.accessToken, data.data.user);
             router.push("/admin/dashboard");
         } catch (err: any) {
             console.error("Login Error:", err);

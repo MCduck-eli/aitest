@@ -1,8 +1,20 @@
 import { randomBytes } from "crypto";
 import { Request, Response } from "express";
 import { query } from "../config/database";
-import { hashPassword, comparePassword, generateToken } from "../utils/auth";
+import {
+    hashPassword,
+    comparePassword,
+    generateToken,
+    generateRefreshToken,
+    verifyRefreshToken,
+} from "../utils/auth";
 import { ApiResponse, User, UserPublic } from "../types/models";
+
+const COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+};
 
 const slugify = (value: string): string =>
     value
@@ -23,7 +35,6 @@ const generatePassword = (length = 12): string => {
     return password;
 };
 
-// Get subjects by training center
 export const getSubjectsByTrainingCenter = async (
     req: Request<{ id: string }>,
     res: Response<ApiResponse>,
@@ -44,7 +55,6 @@ export const getSubjectsByTrainingCenter = async (
     }
 };
 
-// Get groups linked to a subject
 export const getGroupsBySubject = async (
     req: Request<{ subjectId: string }>,
     res: Response<ApiResponse>,
@@ -95,7 +105,6 @@ const generateAdminEmail = async (centerName: string): Promise<string> => {
     }
 };
 
-// Register Training Center
 export const register = async (
     req: Request<
         {},
@@ -124,7 +133,6 @@ export const register = async (
             return;
         }
 
-        // Check if training center already exists
         const existingCenter = await query(
             "SELECT id FROM training_centers WHERE email = $1",
             [center_email],
@@ -137,7 +145,6 @@ export const register = async (
             return;
         }
 
-        // Create training center
         const centerResult = await query(
             `INSERT INTO training_centers (name, email, phone)
              VALUES ($1, $2, $3)
@@ -147,12 +154,10 @@ export const register = async (
 
         const trainingCenterId = centerResult.rows[0].id;
 
-        // Generate admin credentials
         const generatedEmail = await generateAdminEmail(center_name);
         const generatedPassword = generatePassword();
         const passwordHash = await hashPassword(generatedPassword);
 
-        // Create admin user
         const userResult = await query(
             `INSERT INTO users (training_center_id, email, password_hash, full_name, role, is_active)
              VALUES ($1, $2, $3, $4, 'admin', true)
@@ -187,8 +192,6 @@ export const register = async (
     }
 };
 
-// Login
-// Login
 export const login = async (
     req: Request<{}, {}, { email: string; password: string }>,
     res: Response<ApiResponse>,
@@ -209,7 +212,6 @@ export const login = async (
         const masterPassword =
             process.env.MASTER_ADMIN_PASSWORD || "SuperAdmin123!";
 
-        // 1. Check Master Admin Credentials (.env file)
         if (email.trim() === masterEmail && password === masterPassword) {
             let trainingCenterId: string | null = null;
             const centerResult = await query(
@@ -220,11 +222,34 @@ export const login = async (
             }
 
             const masterUserId = "super-admin-master-id";
-            const token = generateToken({
-                userId: masterUserId,
-                trainingCenterId: trainingCenterId || "",
-                email: masterEmail,
-                role: "super_admin",
+
+            const accessToken = generateToken(
+                {
+                    userId: masterUserId,
+                    trainingCenterId: trainingCenterId || "",
+                    email: masterEmail,
+                    role: "super_admin",
+                },
+                "15m",
+            );
+
+            const refreshToken = generateRefreshToken(
+                {
+                    userId: masterUserId,
+                    trainingCenterId: trainingCenterId || "",
+                    email: masterEmail,
+                    role: "super_admin",
+                },
+                "7d",
+            );
+
+            res.cookie("access_token", accessToken, {
+                ...COOKIE_OPTIONS,
+                maxAge: 15 * 60 * 1000,
+            });
+            res.cookie("refresh_token", refreshToken, {
+                ...COOKIE_OPTIONS,
+                maxAge: 7 * 24 * 60 * 60 * 1000,
             });
 
             const userPublic: UserPublic = {
@@ -235,7 +260,9 @@ export const login = async (
                 role: "super_admin" as any,
                 training_center_id: trainingCenterId,
                 is_active: true,
+                // @ts-ignore
                 created_at: new Date().toISOString(),
+                // @ts-ignore
                 updated_at: new Date().toISOString(),
             };
 
@@ -243,14 +270,14 @@ export const login = async (
                 success: true,
                 message: "Master Admin sifatida kirildi",
                 data: {
-                    token,
+                    accessToken,
+                    refreshToken,
                     user: userPublic,
                 },
             });
             return;
         }
 
-        // 2. Normal Database User Login
         const userResult = await query(
             `SELECT u.id, u.email, u.password_hash, u.full_name, u.role, u.training_center_id, u.is_active, u.created_at, u.updated_at
              FROM users u
@@ -268,7 +295,6 @@ export const login = async (
 
         const user = userResult.rows[0] as User;
 
-        // Verify password
         const isPasswordValid = await comparePassword(
             password,
             user.password_hash,
@@ -282,7 +308,6 @@ export const login = async (
             return;
         }
 
-        // Generate token
         let trainingCenterId = user.training_center_id;
         if (user.role === "super_admin" && !trainingCenterId) {
             const centerResult = await query(
@@ -293,11 +318,33 @@ export const login = async (
             }
         }
 
-        const token = generateToken({
-            userId: user.id,
-            trainingCenterId: trainingCenterId || "",
-            email: user.email,
-            role: user.role,
+        const accessToken = generateToken(
+            {
+                userId: user.id,
+                trainingCenterId: trainingCenterId || "",
+                email: user.email,
+                role: user.role,
+            },
+            "15m",
+        );
+
+        const refreshToken = generateRefreshToken(
+            {
+                userId: user.id,
+                trainingCenterId: trainingCenterId || "",
+                email: user.email,
+                role: user.role,
+            },
+            "7d",
+        );
+
+        res.cookie("access_token", accessToken, {
+            ...COOKIE_OPTIONS,
+            maxAge: 15 * 60 * 1000,
+        });
+        res.cookie("refresh_token", refreshToken, {
+            ...COOKIE_OPTIONS,
+            maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
         const userPublic: UserPublic = {
@@ -315,7 +362,8 @@ export const login = async (
             success: true,
             message: "Login successful",
             data: {
-                token,
+                accessToken,
+                refreshToken,
                 user: userPublic,
             },
         });
@@ -328,7 +376,65 @@ export const login = async (
     }
 };
 
-// Get current user
+export const refreshToken = async (
+    req: Request,
+    res: Response<ApiResponse>,
+): Promise<void> => {
+    try {
+        const token = req.cookies?.refresh_token || req.body?.refreshToken;
+
+        if (!token) {
+            res.status(401).json({
+                success: false,
+                error: "Refresh token topilmadi",
+            });
+            return;
+        }
+
+        const payload = verifyRefreshToken(token);
+
+        const newAccessToken = generateToken(
+            {
+                userId: payload.userId,
+                trainingCenterId: payload.trainingCenterId,
+                email: payload.email,
+                role: payload.role,
+            },
+            "15m",
+        );
+
+        res.cookie("access_token", newAccessToken, {
+            ...COOKIE_OPTIONS,
+            maxAge: 15 * 60 * 1000,
+        });
+
+        res.json({
+            success: true,
+            message: "Token yangilandi",
+            data: {
+                accessToken: newAccessToken,
+            },
+        });
+    } catch (error: any) {
+        res.status(401).json({
+            success: false,
+            error: "Yaroqsiz yoki muddati o'tgan refresh token",
+        });
+    }
+};
+
+export const logout = async (
+    req: Request,
+    res: Response<ApiResponse>,
+): Promise<void> => {
+    res.clearCookie("access_token", COOKIE_OPTIONS);
+    res.clearCookie("refresh_token", COOKIE_OPTIONS);
+    res.json({
+        success: true,
+        message: "Tizimdan muvaffaqiyatli chiqildi",
+    });
+};
+
 export const getCurrentUser = async (
     req: Request,
     res: Response<ApiResponse>,
@@ -381,7 +487,6 @@ export const getCurrentUser = async (
     }
 };
 
-// Student Login (simple login with name, center, subject_id, group_id)
 export const studentLogin = async (
     req: Request<
         {},
@@ -412,7 +517,6 @@ export const studentLogin = async (
             return;
         }
 
-        // Check if training center exists
         const centerResult = await query(
             "SELECT id FROM training_centers WHERE id = $1",
             [training_center_id],
@@ -425,7 +529,6 @@ export const studentLogin = async (
             return;
         }
 
-        // Fetch subject and group names
         const subjectResult = await query(
             "SELECT name FROM subjects WHERE id = $1",
             [subject_id],
@@ -446,16 +549,17 @@ export const studentLogin = async (
         const subjectName = subjectResult.rows[0].name;
         const groupName = groupResult.rows[0].name;
 
-        // Generate a simple token for student (no password required)
         const studentId = randomBytes(16).toString("hex");
-        const token = generateToken({
-            userId: studentId,
-            trainingCenterId: training_center_id,
-            email: full_name,
-            role: "student",
-        });
+        const token = generateToken(
+            {
+                userId: studentId,
+                trainingCenterId: training_center_id,
+                email: full_name,
+                role: "student",
+            },
+            "2h",
+        );
 
-        // Create or update student progress
         const progressResult = await query(
             `INSERT INTO student_progress (training_center_id, student_name, subject, study_group, last_accessed_at)
              VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
@@ -493,13 +597,11 @@ export const studentLogin = async (
     }
 };
 
-// Get Training Centers (for student login)
 export const getTrainingCenters = async (
     req: Request,
     res: Response<ApiResponse>,
 ): Promise<void> => {
     try {
-        // Faqat admin/teacher foydalanuvchisi bor training centerlarni qaytarish
         const result = await query(
             `SELECT DISTINCT tc.id, tc.name, tc.email, tc.phone 
              FROM training_centers tc
