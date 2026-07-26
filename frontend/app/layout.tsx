@@ -39,11 +39,9 @@ export default function RootLayout({
             lang="en"
             className={`${geistSans.variable} ${geistMono.variable} ${orbitron.variable} h-full antialiased`}
         >
-            <body className="min-h-full flex flex-col bg-slate-950 text-slate-200 overflow-hidden relative">
-                <div className="absolute inset-0 z-0 pointer-events-none">
-                    <SceneWrapper />
-                </div>
-                <div className="grow flex flex-col relative z-10 w-full h-full">
+            <body className="min-h-screen relative overflow-x-hidden bg-slate-950 text-slate-200">
+                <SceneWrapper />
+                <div className="relative z-10 w-full">
                     <PageTransition>{children}</PageTransition>
                 </div>
             </body>

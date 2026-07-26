@@ -123,7 +123,7 @@ export default function StudentLoginPage() {
     };
 
     return (
-        <div className="w-full h-full min-h-screen text-white overflow-hidden relative flex items-center justify-center p-4 md:p-12">
+        <div className="w-full min-h-screen text-white relative flex items-center justify-center p-4 md:p-12 overflow-y-auto">
             <div className="flex flex-col lg:flex-row items-center justify-center gap-6 w-full max-w-6xl relative z-20 pointer-events-auto">
                 <div className="hidden lg:block w-1/3 h-[420px] bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-[0_0_50px_rgba(168,85,247,0.15)] overflow-hidden relative shrink-0">
                     <video

@@ -5,7 +5,7 @@ import { ParticlesBackground } from "./ParticlesBackground";
 
 export function SceneWrapper() {
     return (
-        <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
+        <div className="fixed top-0 left-0 w-[100vw] h-[100vh] pointer-events-none z-0">
             <Canvas
                 camera={{ position: [0, 0, 10], fov: 60 }}
                 style={{

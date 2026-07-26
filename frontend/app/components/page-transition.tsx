@@ -10,14 +10,14 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
         <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
                 key={pathname}
-                initial={{ opacity: 0, x: "100%" }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: "-100%" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={{
                     duration: 0.6,
                     ease: [0.4, 0.0, 0.2, 1],
                 }}
-                className="w-full h-full grow flex flex-col items-center justify-center absolute inset-0"
+                className="w-full flex-1 flex flex-col"
             >
                 {children}
             </motion.div>
