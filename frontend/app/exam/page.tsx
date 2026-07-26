@@ -20,7 +20,7 @@ export default function ExamPage() {
         setMounted(true);
     }, []);
 
-    const [questions, setQuestions] = useState([]);
+    const [questions, setQuestions] = useState<any[]>([]);
     const [currentLesson, setCurrentLesson] = useState<string>("");
     const [aiResult, setAiResult] = useState<{
         score: number;
@@ -28,7 +28,10 @@ export default function ExamPage() {
         photoBase64?: string | null;
     } | null>(null);
 
-    const handleStartExam = async (lessonId: string, selectedTopic?: string) => {
+    const handleStartExam = async (
+        lessonId: string,
+        selectedTopic?: string,
+    ) => {
         setLoading(true);
         try {
             const response = await fetch(
@@ -131,6 +134,7 @@ export default function ExamPage() {
             });
             setStep("result");
         } catch (error) {
+            alert("Xatolik yuz berdi.");
         } finally {
             setLoading(false);
         }
@@ -138,7 +142,7 @@ export default function ExamPage() {
 
     const handleLogout = () => {
         logout();
-        router.push('/student');
+        router.push("/student");
     };
 
     const handleRestart = () => {
@@ -148,42 +152,34 @@ export default function ExamPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white flex flex-col relative overflow-hidden">
-            {/* Stars background */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-10 left-10 w-1 h-1 bg-white rounded-full opacity-50"></div>
-                <div className="absolute top-20 right-20 w-1 h-1 bg-white rounded-full opacity-30"></div>
-                <div className="absolute top-40 left-1/4 w-1 h-1 bg-white rounded-full opacity-40"></div>
-                <div className="absolute top-60 right-1/3 w-1 h-1 bg-white rounded-full opacity-60"></div>
-                <div className="absolute top-80 left-1/2 w-1 h-1 bg-white rounded-full opacity-20"></div>
-                <div className="absolute bottom-20 left-20 w-1 h-1 bg-white rounded-full opacity-50"></div>
-                <div className="absolute bottom-40 right-10 w-1 h-1 bg-white rounded-full opacity-40"></div>
-                <div className="absolute bottom-60 left-1/3 w-1 h-1 bg-white rounded-full opacity-30"></div>
-                <div className="absolute top-1/3 right-1/4 w-1 h-1 bg-white rounded-full opacity-50"></div>
-                <div className="absolute top-2/3 left-1/4 w-1 h-1 bg-white rounded-full opacity-40"></div>
-            </div>
-
-            {/* Header with user info and logout */}
-            <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10 bg-slate-900/50 backdrop-blur-sm">
+        <div className="w-full min-h-screen text-white relative flex flex-col justify-start p-4 md:p-8 overflow-y-auto">
+            <div className="w-full max-w-6xl mx-auto p-4 flex justify-between items-center z-20 relative bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-[0_0_30px_rgba(168,85,247,0.1)]">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center font-bold">
-                        {mounted ? (user?.full_name?.charAt(0) || 'S') : 'S'}
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-400 to-purple-500 p-0.5 shadow-[0_0_15px_rgba(34,211,238,0.4)]">
+                        <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center font-bold text-cyan-400">
+                            {mounted ? user?.full_name?.charAt(0) || "S" : "S"}
+                        </div>
                     </div>
                     <div>
-                        <div className="font-medium">{mounted ? (user?.full_name || 'Student') : 'Student'}</div>
-                        <div className="text-xs text-gray-400">{mounted ? (`${user?.subject || ''} - ${user?.study_group || ''}`) : ''}</div>
+                        <div className="font-medium text-slate-100">
+                            {mounted ? user?.full_name || "Student" : "Student"}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                            {mounted
+                                ? `${user?.subject || ""} - ${user?.study_group || ""}`
+                                : ""}
+                        </div>
                     </div>
                 </div>
                 <button
                     onClick={handleLogout}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition text-sm font-medium"
+                    className="px-4 py-2 bg-red-600/80 hover:bg-red-600 text-white rounded-xl transition-all border border-red-500/30 text-sm font-medium shadow-[0_0_15px_rgba(239,68,68,0.2)] active:scale-[0.98]"
                 >
                     Chiqish
                 </button>
             </div>
 
-            {/* Main content */}
-            <div className="flex-1 flex flex-col items-center justify-center p-6 pt-20">
+            <div className="flex-1 w-full max-w-6xl mx-auto flex flex-col items-center justify-start p-4 relative z-20 my-6">
                 <AIOrb loading={loading} />
                 {step === "select" && (
                     <LessonSelector

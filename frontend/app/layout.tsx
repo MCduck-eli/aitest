@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Orbitron } from "next/font/google";
 import "./globals.css";
+import { SceneWrapper } from "./components/SceneWrapper";
+import { PageTransition } from "./components/page-transition";
+
+const orbitron = Orbitron({ subsets: ["latin"], variable: "--font-orbitron" });
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -11,6 +15,7 @@ const geistMono = Geist_Mono({
     variable: "--font-geist-mono",
     subsets: ["latin"],
 });
+
 export const metadata: Metadata = {
     title: "AiTest Halikov — O'quv markazlari uchun AI nazoratidagi platforma",
     description:
@@ -23,6 +28,7 @@ export const metadata: Metadata = {
         icon: "/logo.png",
     },
 };
+
 export default function RootLayout({
     children,
 }: Readonly<{
@@ -31,9 +37,16 @@ export default function RootLayout({
     return (
         <html
             lang="en"
-            className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+            className={`${geistSans.variable} ${geistMono.variable} ${orbitron.variable} h-full antialiased`}
         >
-            <body className="min-h-full flex flex-col">{children}</body>
+            <body className="min-h-full flex flex-col bg-slate-950 text-slate-200 overflow-hidden relative">
+                <div className="absolute inset-0 z-0 pointer-events-none">
+                    <SceneWrapper />
+                </div>
+                <div className="grow flex flex-col relative z-10 w-full h-full">
+                    <PageTransition>{children}</PageTransition>
+                </div>
+            </body>
         </html>
     );
 }

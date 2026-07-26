@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/lib/auth';
-import { API_BASE_URL } from '@/lib/api';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/lib/auth";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function AdminAuthPage() {
     const router = useRouter();
     const { setAuth } = useAuthStore();
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError] = useState("");
     const [showPassword, setShowPassword] = useState(false);
 
     const [formData, setFormData] = useState({
-        email: '',
-        password: '',
+        email: "",
+        password: "",
     });
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,34 +25,44 @@ export default function AdminAuthPage() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setError('');
+        setError("");
 
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     email: formData.email,
                     password: formData.password,
                 }),
             });
 
-            const data = await response.json();
+            const contentType = response.headers.get("content-type");
+            let data;
+
+            if (contentType && contentType.includes("application/json")) {
+                data = await response.json();
+            } else {
+                const textData = await response.text();
+                throw new Error(
+                    `Server JSON emas, HTML/Matn qaytardi: ${textData.slice(0, 100)}`,
+                );
+            }
 
             if (!response.ok) {
-                setError(data.error || 'Login amalga oshmadi');
+                setError(data.error || "Login amalga oshmadi");
                 return;
             }
 
             setAuth(data.data.token, data.data.user);
-            router.push('/admin/dashboard');
-        } catch (err) {
-            setError('Xatolik yuz berdi. Iltimos, yana urinib ko\'ring.');
+            router.push("/admin/dashboard");
+        } catch (err: any) {
+            console.error("Login Error:", err);
+            setError(err?.message || "Serverga ulanishda xatolik yuz berdi");
         } finally {
             setLoading(false);
         }
     };
-
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
@@ -80,7 +90,7 @@ export default function AdminAuthPage() {
                     </p>
 
                     {error && (
-                        <div className="bg-red-950/40 border border-red-900/60 text-red-400 px-4 py-3 rounded-lg mb-4 text-sm">
+                        <div className="bg-red-950/40 border border-red-900/60 text-red-400 px-4 py-3 rounded-lg mb-4 text-sm break-words">
                             {error}
                         </div>
                     )}
@@ -106,7 +116,7 @@ export default function AdminAuthPage() {
                             </label>
                             <div className="relative">
                                 <input
-                                    type={showPassword ? 'text' : 'password'}
+                                    type={showPassword ? "text" : "password"}
                                     name="password"
                                     value={formData.password}
                                     onChange={handleInputChange}
@@ -115,10 +125,12 @@ export default function AdminAuthPage() {
                                 />
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
+                                    onClick={() =>
+                                        setShowPassword(!showPassword)
+                                    }
                                     className="absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-blue-400 hover:text-blue-300"
                                 >
-                                    {showPassword ? 'Yashirish' : 'Ko\'rsatish'}
+                                    {showPassword ? "Yashirish" : "Ko'rsatish"}
                                 </button>
                             </div>
                         </div>
@@ -128,7 +140,7 @@ export default function AdminAuthPage() {
                             disabled={loading}
                             className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
                         >
-                            {loading ? 'Yuklanmoqda...' : 'Kirish'}
+                            {loading ? "Yuklanmoqda..." : "Kirish"}
                         </button>
                     </form>
                 </div>

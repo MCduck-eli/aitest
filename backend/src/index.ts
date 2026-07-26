@@ -8,14 +8,11 @@ dotenv.config();
 
 const PORT = Number(process.env.PORT || 5000);
 
-// Initialize database first, then start server
 const startServer = async () => {
     try {
         console.log("🗄️  Initializing database...");
         await initializeDatabase();
         console.log("✅ Database initialized");
-
-        // Start background tasks
         startCleanupJob();
 
         app.listen(PORT, () => {
@@ -26,7 +23,9 @@ const startServer = async () => {
             if (process.env.ENABLE_TELEGRAM === "true") {
                 initTelegramBot();
             } else {
-                console.log("ℹ️ Telegram bot o'chirilgan holatda ishga tushdi.");
+                console.log(
+                    "ℹ️ Telegram bot o'chirilgan holatda ishga tushdi.",
+                );
             }
         });
     } catch (error) {
@@ -36,5 +35,3 @@ const startServer = async () => {
 };
 
 startServer();
-
-// Trigger reload
