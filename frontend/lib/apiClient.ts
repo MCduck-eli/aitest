@@ -13,12 +13,12 @@ const onTokenRefreshed = (token: string) => {
   refreshSubscribers = [];
 };
 
-export const apiFetch = async (url: string, options: RequestInit = {}) => {
+export const apiFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
   const { token, refreshToken } = useAuthStore.getState();
 
   // Add authorization header if token exists
-  const headers = {
-    ...options.headers,
+  const headers: Record<string, string> = {
+    ...options.headers as Record<string, string>,
     'Content-Type': 'application/json',
   };
 
@@ -63,6 +63,7 @@ export const apiFetch = async (url: string, options: RequestInit = {}) => {
             throw new Error('Token refresh failed');
           }
         } catch (error) {
+          console.error('Token refresh error:', error);
           useAuthStore.getState().logout();
           window.location.href = '/admin/auth';
           throw error;
@@ -81,6 +82,7 @@ export const apiFetch = async (url: string, options: RequestInit = {}) => {
 
     return response;
   } catch (error) {
+    console.error('API fetch error:', error);
     throw error;
   }
 };

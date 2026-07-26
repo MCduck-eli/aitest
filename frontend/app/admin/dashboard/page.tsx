@@ -78,6 +78,7 @@ export default function AdminDashboard() {
                 const subjectGroupsData = await subjectGroupsResponse.json();
                 if (subjectGroupsData.success) setSubjectGroups(subjectGroupsData.data);
             } catch (error) {
+                console.error('Dashboard data fetch error:', error);
             } finally {
                 setLoading(false);
             }
