@@ -253,6 +253,7 @@ Imtihon paytida olingan ushbu kadrni tekshiring. Telefon, yordam, nusxa ko'chiri
         subject?: string,
         studyGroup?: string,
         selectedTopic?: string,
+        lang?: string,
     ) => {
         try {
             const restrictionPrompt = selectedTopic
@@ -262,6 +263,8 @@ Imtihon paytida olingan ushbu kadrni tekshiring. Telefon, yordam, nusxa ko'chiri
             const scriptInfo = lessonScript && lessonScript.trim().length > 50
                 ? `DARS SKRIPTI MATNI:\n${lessonScript}`
                 : `DARS MAVZUSI: ${subject || "IT texnologiyalar"}\nEslat: Skript qisqa, umumiy bilimlar asosida savol tuz.`;
+
+            const targetLanguage = lang === 'ru' ? 'RUS TILIDA (все вопросы и ответы должны быть СТРОГО НА РУССКОМ языке)' : "O'ZBEK TILIDA";
 
             const response = await groqClient.chat.completions.create({
                 model: GROQ_MODEL,
@@ -291,7 +294,7 @@ MISOMOLLAR (bunday darajadagi savollar tuzing):
 ✅ "Python da list comprehension qachon lambda'dan afzalroq?"
 
 QOIDALAR:
-- Savollar faqat O'ZBEK TILIDA
+- Savollar va javoblar faqat ${targetLanguage}
 - Har bir savolga 4 ta javob varianti
 - Faqat BITTA to'g'ri javob — qolgan 3 tasi mantiqan o'xshash lekin noto'g'ri bo'lsin
 - Savollar QIYIN va TAHLILIY bo'lsin — oddiy "nima bu?" savollar emas!
@@ -373,6 +376,7 @@ export const generateQuestionsByTopic = async (
     lessonId: number,
     lessons: Array<{ id: number; name: string; topics: string[]; keyKnowledge?: string }>,
     topics: string[],
+    lang?: string,
 ) => {
     try {
         // Har bir dars uchun haqiqiy bilim kontenti bilan batafsil blok
@@ -386,6 +390,7 @@ export const generateQuestionsByTopic = async (
             .join("\n\n");
 
         const questionCount = 5;
+        const targetLanguage = lang === 'ru' ? 'строго на русском языке' : "o'zbek tilida";
 
         const response = await groqClient.chat.completions.create({
             model: GROQ_MODEL,
@@ -397,7 +402,7 @@ export const generateQuestionsByTopic = async (
 🔴 TAQIQLANGAN: Dars raqami, dars nomi, kurs haqida savollar, "Qaysi darsda o'rgatiladi?" kabi metama'lumot savollari qat'iyan taqiqlanadi!
 ✅ RUHSAT BERILGAN: Faqat sof nazariy va amaliy bilimlar (formulalar, sintaksis, konversiya, amallar).
 
-QOIDALAR: o'zbek tilida, 4 ta variant, bitta to'g'ri javob, qisqa matn
+QOIDALAR: ${targetLanguage}, 4 ta variant, bitta to'g'ri javob, qisqa matn
 - MUHIM: Har safar mutlaqo yangi, takrorlanmas, oldingi savollarga o'xshamaydigan turli xil savollar yarating!
 
 Javobni faqat quyidagi JSON formatida qaytaring:

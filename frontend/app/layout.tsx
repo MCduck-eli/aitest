@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Orbitron } from "next/font/google";
 import "./globals.css";
 import { CssParticles } from "./components/CssParticles";
 import { PageTransition } from "./components/page-transition";
+import { LangToggle } from "./components/LangToggle";
 
 const orbitron = Orbitron({ subsets: ["latin"], variable: "--font-orbitron" });
 
@@ -41,7 +42,10 @@ export default function RootLayout({
         >
             <body className="min-h-screen relative overflow-x-hidden bg-slate-950 text-slate-200">
                 <CssParticles />
-                <div className="relative z-10 w-full">
+                {/* Language Toggle globally available */}
+                <LangToggle />
+                {/* Page Content with Slide Transition */}
+                <div className="flex-grow flex flex-col relative z-10 w-full h-full">
                     <PageTransition>{children}</PageTransition>
                 </div>
             </body>

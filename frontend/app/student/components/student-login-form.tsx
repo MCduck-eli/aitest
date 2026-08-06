@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useLangStore } from "@/store/langStore";
+import { getTranslation } from "@/lib/i18n";
 
 interface StudentLoginFormProps {
     currentStep: number;
@@ -49,16 +51,18 @@ export default function StudentLoginForm({
         visible: { opacity: 1, transition: { duration: 0.2 } },
         exit: { opacity: 0, transition: { duration: 0.1 } },
     };
+    
+    const { lang } = useLangStore();
 
     return (
         <div className="md:w-3/5 p-6 relative flex flex-col justify-between h-full overflow-hidden">
             <div>
                 <h1 className="text-2xl font-bold text-slate-100 mb-4 bg-clip-text bg-linear-to-r from-cyan-400 to-purple-400">
                     {currentStep === 1
-                        ? "Shaxsiy Ma'lumotlar"
+                        ? getTranslation(lang, 'step1_title')
                         : currentStep === 2
-                          ? "Markazni Tanlang"
-                          : "Guruhni Tasdiqlang"}
+                          ? getTranslation(lang, 'step2_title')
+                          : getTranslation(lang, 'step3_title')}
                 </h1>
 
                 {error && (
@@ -79,7 +83,7 @@ export default function StudentLoginForm({
                         >
                             <div className="mb-6">
                                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    To'liq ismingiz
+                                    {getTranslation(lang, 'fullname_label')}
                                 </label>
                                 <input
                                     type="text"
@@ -87,7 +91,7 @@ export default function StudentLoginForm({
                                     value={formData.full_name}
                                     onChange={handleInputChange}
                                     className="w-full px-5 py-3 bg-slate-950/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 text-slate-200 placeholder-slate-500 focus:outline-none transition-all shadow-inner"
-                                    placeholder="Masalan: Aliyev Vali"
+                                    placeholder={getTranslation(lang, 'fullname_placeholder')}
                                     required
                                 />
                             </div>
@@ -97,7 +101,7 @@ export default function StudentLoginForm({
                                 disabled={!formData.full_name.trim()}
                                 className="w-full bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-slate-800 disabled:to-slate-800 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-[0_0_15px_rgba(8,145,178,0.4)] disabled:shadow-none active:scale-[0.98]"
                             >
-                                Keyingi qadam
+                                {getTranslation(lang, 'next_step')}
                             </button>
                         </motion.div>
                     )}
@@ -113,7 +117,7 @@ export default function StudentLoginForm({
                         >
                             <div className="mb-6">
                                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    O'quv markazi
+                                    {getTranslation(lang, 'center_label')}
                                 </label>
                                 <select
                                     name="training_center_id"
@@ -125,8 +129,8 @@ export default function StudentLoginForm({
                                 >
                                     <option value="" className="bg-slate-900">
                                         {loadingCenters
-                                            ? "Yuklanmoqda..."
-                                            : "Markaz tanlang"}
+                                            ? getTranslation(lang, 'center_loading')
+                                            : getTranslation(lang, 'center_placeholder')}
                                     </option>
                                     {trainingCenters.map((center) => (
                                         <option
@@ -145,7 +149,7 @@ export default function StudentLoginForm({
                                     onClick={handlePrevStep}
                                     className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold py-3 px-4 rounded-xl transition-all active:scale-[0.98]"
                                 >
-                                    Orqaga
+                                    {getTranslation(lang, 'btn_back')}
                                 </button>
                                 <button
                                     type="button"
@@ -153,7 +157,7 @@ export default function StudentLoginForm({
                                     disabled={!formData.training_center_id}
                                     className="flex-1 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-slate-800 disabled:to-slate-800 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] disabled:shadow-none active:scale-[0.98]"
                                 >
-                                    Davom etish
+                                    {getTranslation(lang, 'btn_continue')}
                                 </button>
                             </div>
                         </motion.div>
@@ -170,15 +174,15 @@ export default function StudentLoginForm({
                         >
                             <div className="mb-4">
                                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    Fan va Guruh
+                                    {getTranslation(lang, 'subject_group_label')}
                                 </label>
                                 {loadingSubjects || loadingGroups ? (
                                     <div className="text-slate-400 text-sm p-4 bg-slate-900/50 rounded-xl">
-                                        Yuklanmoqda...
+                                        {getTranslation(lang, 'center_loading')}
                                     </div>
                                 ) : subjects.length === 0 ? (
                                     <div className="text-slate-400 text-sm p-4 bg-slate-900/50 rounded-xl border border-slate-800">
-                                        Bu markazda fanlar yo'q
+                                        {getTranslation(lang, 'no_subjects')}
                                     </div>
                                 ) : (
                                     <div className="space-y-3 max-h-36 overflow-y-auto border border-slate-700/50 rounded-xl p-3 bg-slate-950/40 shadow-inner custom-scrollbar">
@@ -236,7 +240,7 @@ export default function StudentLoginForm({
                                                         </div>
                                                     ) : (
                                                         <div className="text-xs text-slate-500">
-                                                            Guruhlar mavjud emas
+                                                            {getTranslation(lang, 'no_groups')}
                                                         </div>
                                                     )}
                                                 </div>
@@ -251,7 +255,7 @@ export default function StudentLoginForm({
                                     onClick={handlePrevStep}
                                     className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold py-2.5 px-4 rounded-xl transition-all active:scale-[0.98] text-sm"
                                 >
-                                    Orqaga
+                                    {getTranslation(lang, 'btn_back')}
                                 </button>
                                 <button
                                     type="submit"
@@ -263,8 +267,8 @@ export default function StudentLoginForm({
                                     className="flex-1 bg-linear-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 disabled:from-slate-800 disabled:to-slate-800 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.5)] disabled:shadow-none active:scale-[0.98] text-sm"
                                 >
                                     {loading
-                                        ? "Kirilmoqda..."
-                                        : "Tizimga Kirish"}
+                                        ? getTranslation(lang, 'btn_login_loading')
+                                        : getTranslation(lang, 'btn_login')}
                                 </button>
                             </div>
                         </motion.div>

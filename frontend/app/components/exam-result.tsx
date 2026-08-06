@@ -1,5 +1,8 @@
 "use client";
 
+import { useLangStore } from "@/store/langStore";
+import { getTranslation } from "@/lib/i18n";
+
 interface ExamResultProps {
     score: number;
     feedback: string;
@@ -13,16 +16,17 @@ export default function ExamResult({
     onRestart,
     photoBase64,
 }: ExamResultProps) {
+    const { lang } = useLangStore();
     return (
         <div className="w-full max-w-2xl bg-slate-900/60 backdrop-blur-md border border-slate-800 p-8 rounded-2xl shadow-xl z-10 animate-fadeIn">
             <div className="space-y-6">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                     <div>
                         <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest">
-                            Imtihon yakunlandi
+                            {getTranslation(lang, 'er_title')}
                         </span>
                         <h2 className="text-xl font-semibold mt-1 text-slate-200">
-                            Umumiy Natija
+                            {getTranslation(lang, 'er_result')}
                         </h2>
                     </div>
                     <span
@@ -38,10 +42,10 @@ export default function ExamResult({
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
                         <div className="flex items-center justify-between mb-3">
                             <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest">
-                                Sizning rasmingiz
+                                {getTranslation(lang, 'er_photo_title')}
                             </span>
                             <span className="text-xs text-emerald-300">
-                                😊 Kulib turdingiz
+                                {getTranslation(lang, 'er_photo_desc')}
                             </span>
                         </div>
                         <img
@@ -54,7 +58,7 @@ export default function ExamResult({
 
                 <div>
                     <span className="text-xs font-mono text-slate-500 uppercase block mb-1">
-                        Professor Xulosasi va Tavsiyalari
+                        {getTranslation(lang, 'er_feedback_title')}
                     </span>
                     <p className="text-slate-300 leading-relaxed bg-slate-950/40 p-4 rounded-xl border border-slate-800/50 whitespace-pre-wrap">
                         {feedback}
@@ -65,7 +69,7 @@ export default function ExamResult({
                     onClick={onRestart}
                     className="w-full border border-slate-800 hover:bg-slate-800 text-slate-400 py-3 rounded-xl transition-colors text-sm font-medium"
                 >
-                    Yangi imtihon topshirish
+                    {getTranslation(lang, 'er_btn_restart')}
                 </button>
             </div>
         </div>

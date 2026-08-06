@@ -3,10 +3,13 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLangStore } from "@/store/langStore";
+import { getTranslation } from "@/lib/i18n";
 
 export default function HomePage() {
     const router = useRouter();
     const [isAboutOpen, setIsAboutOpen] = useState(false);
+    const { lang } = useLangStore();
 
     const handleNavigate = () => {
         router.push("/student");
@@ -72,11 +75,11 @@ export default function HomePage() {
                 className="z-10 text-center px-4 max-w-4xl flex flex-col items-center mt-[10%]"
             >
                 <motion.h1 variants={itemVariants} className="text-6xl md:text-8xl font-black text-white tracking-tighter mb-4 leading-tight font-orbitron drop-shadow-xl">
-                    Kelajak <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Ta'limi</span>
+                    {getTranslation(lang, 'hero_title')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">{getTranslation(lang, 'hero_title_span')}</span>
                 </motion.h1>
 
                 <motion.p variants={itemVariants} className="text-xl md:text-2xl text-slate-100 mb-10 max-w-2xl mx-auto font-light drop-shadow-lg">
-                    Sun'iy intellekt nazoratidagi xolis onlayn imtihonlar.
+                    {getTranslation(lang, 'hero_subtitle')}
                 </motion.p>
 
                 <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-4">
@@ -86,7 +89,7 @@ export default function HomePage() {
                         className="group relative px-10 py-4 bg-white/90 backdrop-blur-sm rounded-full font-bold text-lg text-slate-900 shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_50px_rgba(255,255,255,0.4)] transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3 overflow-hidden border border-white/50"
                     >
                         <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-slate-900/10 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
-                        <span className="tracking-wide">Boshlash</span>
+                        <span className="tracking-wide">{getTranslation(lang, 'btn_start')}</span>
                         <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
@@ -97,7 +100,7 @@ export default function HomePage() {
                         onClick={() => setIsAboutOpen(true)}
                         className="group relative px-10 py-4 bg-slate-900/30 border border-slate-300/30 rounded-full font-bold text-lg text-white backdrop-blur-md hover:bg-slate-900/50 hover:border-slate-300/60 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
                     >
-                        <span className="tracking-wide">Loyiha haqida</span>
+                        <span className="tracking-wide">{getTranslation(lang, 'btn_about')}</span>
                         <svg className="w-5 h-5 opacity-70 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -133,16 +136,15 @@ export default function HomePage() {
                             </button>
 
                             <h2 className="text-3xl font-bold text-white mb-6 font-orbitron bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
-                                AiTest Halikov
+                                {getTranslation(lang, 'about_title')}
                             </h2>
                             
                             <div className="space-y-4 text-slate-300 leading-relaxed font-light">
                                 <p>
-                                    <strong className="text-white font-medium">AiTest</strong> — bu o'quv markazlari va ta'lim muassasalari uchun mo'ljallangan zamonaviy, to'liq avtomatlashtirilgan onlayn imtihon tizimidir.
+                                    <strong className="text-white font-medium">AiTest</strong> {getTranslation(lang, 'about_p1')}
                                 </p>
                                 <p>
-                                    Platformamiz sun'iy intellekt (AI) texnologiyalari orqali har bir o'quvchining harakatlarini, yuz tuzilishini va atrof-muhitni real vaqt rejimida nazorat qiladi. 
-                                    Bu orqali imtihon davomidagi har qanday qoidabuzarliklar (boshqa odam yordam berishi, ekrandan chalg'ish, kitobdan foydalanish) avtomatik aniqlanadi.
+                                    {getTranslation(lang, 'about_p2')}
                                 </p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-700/50">
                                     <div className="flex items-start gap-3">
@@ -153,8 +155,8 @@ export default function HomePage() {
                                             </svg>
                                         </div>
                                         <div>
-                                            <h4 className="text-white font-medium mb-1">Face Recognition</h4>
-                                            <p className="text-sm text-slate-400">Faqat ro'yxatdan o'tgan o'quvchi imtihon topshira oladi.</p>
+                                            <h4 className="text-white font-medium mb-1">{getTranslation(lang, 'feature1_title')}</h4>
+                                            <p className="text-sm text-slate-400">{getTranslation(lang, 'feature1_desc')}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-start gap-3">
@@ -164,8 +166,8 @@ export default function HomePage() {
                                             </svg>
                                         </div>
                                         <div>
-                                            <h4 className="text-white font-medium mb-1">Anti-Cheat Tizimi</h4>
-                                            <p className="text-sm text-slate-400">Tablarni almashtirish va ko'chirish avtomatik bloklanadi.</p>
+                                            <h4 className="text-white font-medium mb-1">{getTranslation(lang, 'feature2_title')}</h4>
+                                            <p className="text-sm text-slate-400">{getTranslation(lang, 'feature2_desc')}</p>
                                         </div>
                                     </div>
                                 </div>

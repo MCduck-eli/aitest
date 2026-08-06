@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { API_BASE_URL } from "../../lib/api";
+import { useLangStore } from "@/store/langStore";
+import { getTranslation } from "@/lib/i18n";
 
 interface Question {
     id: number;
@@ -83,8 +85,9 @@ export default function QuestionCard({
     >([]);
 
     const [violationsCount, setViolationsCount] = useState(0);
+    const { lang } = useLangStore();
     const [proctoringStatus, setProctoringStatus] = useState(
-        "Kamera va mikrofon yuklanmoqda...",
+        getTranslation(lang, 'qc_cam_loading'),
     );
     const [warning, setWarning] = useState<string | null>(null);
 
@@ -579,7 +582,7 @@ export default function QuestionCard({
                 {questions && questions[currentIndex] && (
                     <div>
                         <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest">
-                            {currentLesson}-dars
+                            {currentLesson}{getTranslation(lang, 'qc_lesson')}
                         </span>
                         <h2 className="text-xl font-semibold mt-1 text-slate-200">
                             {questions[currentIndex].text}
@@ -598,7 +601,7 @@ export default function QuestionCard({
                     onDrop={(e) => e.preventDefault()}
                     spellCheck={false}
                     autoComplete="off"
-                    placeholder="Javobingizni shu yerga yozing..."
+                    placeholder={getTranslation(lang, 'qc_placeholder')}
                 />
                 <button
                     onClick={() => {
@@ -615,8 +618,9 @@ export default function QuestionCard({
                             setAnswer("");
                             lastAnswerLengthRef.current = 0;
                         } else {
-                            setWarning("😊 Kulib turing, rasmga olamiz...");
-                            setProctoringStatus("😊 Kulib turing, rasmga olamiz...");
+                            const smileText = getTranslation(lang, 'qc_smile');
+                            setWarning(smileText);
+                            setProctoringStatus(smileText);
                             const finalPhoto = takeSnapshot();
                             isExamActive.current = false;
                             stopMedia();
@@ -625,7 +629,7 @@ export default function QuestionCard({
                     }}
                     className="w-full bg-linear-to-r from-cyan-600 to-blue-600 text-white font-medium py-3 rounded-xl transition-all shadow-lg hover:from-cyan-500 hover:to-blue-500 active:scale-[0.99]"
                 >
-                    {currentIndex === questions.length - 1 ? "Tugatish" : "Keyingisi"}
+                    {currentIndex === questions.length - 1 ? getTranslation(lang, 'qc_btn_finish') : getTranslation(lang, 'qc_btn_next')}
                 </button>
             </div>
             <canvas ref={canvasRef} className="hidden" />

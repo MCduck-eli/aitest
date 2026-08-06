@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/auth";
 import { API_BASE_URL } from "@/lib/api";
 import StudentLoginForm from "./components/student-login-form";
+import { useLangStore } from "@/store/langStore";
+import { getTranslation } from "@/lib/i18n";
 
 export default function StudentLoginPage() {
     const router = useRouter();
     const { setAuth } = useAuthStore();
+    const { lang } = useLangStore();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [trainingCenters, setTrainingCenters] = useState<any[]>([]);
@@ -109,14 +112,14 @@ export default function StudentLoginPage() {
             const data = await response.json();
 
             if (!response.ok) {
-                setError(data.error || "Kirish amalga oshmadi");
+                setError(data.error || getTranslation(lang, 'error_login_failed'));
                 return;
             }
 
             setAuth(data.data.token, data.data.user);
             router.push("/exam");
         } catch (err) {
-            setError("Xatolik yuz berdi. Iltimos, yana urinib ko'ring.");
+            setError(getTranslation(lang, 'error_generic'));
         } finally {
             setLoading(false);
         }
@@ -157,7 +160,7 @@ export default function StudentLoginPage() {
                             </div>
                         </div>
                         <h2 className="text-2xl font-bold text-white mb-2 font-orbitron text-center">
-                            Talaba Profili
+                            {getTranslation(lang, 'student_profile')}
                         </h2>
                         <p className="text-slate-400 text-center text-sm">
                             Platformaga kirish va imtihonni boshlash uchun

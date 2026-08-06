@@ -84,6 +84,7 @@ interface StartExamBody {
     lessonScriptId?: string;
     selectedTopic?: string;
     topic?: string;
+    lang?: string;
 }
 
 interface SubmitTestResultBody {
@@ -200,6 +201,7 @@ export const startExamByTopic = async (
     try {
         const lessonScriptId = req.body.lessonScriptId;
         const selectedTopic = req.body.selectedTopic;
+        const lang = req.body.lang || "uz";
 
         if (lessonScriptId) {
             const scriptResult = await query(
@@ -230,7 +232,8 @@ export const startExamByTopic = async (
                 enrichedContent,
                 subjectName,
                 groupName,
-                selectedTopic
+                selectedTopic,
+                lang
             );
 
             if (!questions || (Array.isArray(questions) && questions.length === 0)) {
@@ -295,6 +298,7 @@ export const startExamByTopic = async (
             lessonId,
             coveredLessons,
             coveredTopics,
+            lang
         );
 
         if (

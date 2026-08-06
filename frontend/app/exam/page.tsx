@@ -8,10 +8,13 @@ import ExamResult from "../components/exam-result";
 import AIOrb from "../components/AI-orb";
 import { API_BASE_URL } from "../../lib/api";
 import { useAuthStore } from "../../lib/auth";
+import { useLangStore } from "@/store/langStore";
+import { getTranslation } from "@/lib/i18n";
 
 export default function ExamPage() {
     const router = useRouter();
     const { user, logout } = useAuthStore();
+    const { lang } = useLangStore();
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState<"select" | "exam" | "result">("select");
     const [mounted, setMounted] = useState(false);
@@ -45,6 +48,7 @@ export default function ExamPage() {
                     body: JSON.stringify({
                         lessonScriptId: lessonId,
                         selectedTopic: selectedTopic,
+                        lang: lang,
                     }),
                 },
             );
@@ -57,11 +61,11 @@ export default function ExamPage() {
                 setStep("exam");
             } else {
                 alert(
-                    `Xatolik: ${data.message || "Server ma'lumotni qaytarmadi"}`,
+                    `${getTranslation(lang, 'error_generic')} ${data.message || getTranslation(lang, 'error_server_no_data')}`,
                 );
             }
         } catch (error) {
-            alert("Backendga ulanib bo'lmadi!");
+            alert(getTranslation(lang, 'error_backend_connect'));
         } finally {
             setLoading(false);
         }
@@ -101,12 +105,12 @@ export default function ExamPage() {
                 setStep("result");
             } else {
                 alert(
-                    "Natijani saqlashda xatolik: " +
-                        (data.message || "Noma'lum xato"),
+                    `${getTranslation(lang, 'error_save_result')} ` +
+                        (data.message || getTranslation(lang, 'error_unknown')),
                 );
             }
         } catch (error) {
-            alert("Serverga ulanishda xatolik yuz berdi.");
+            alert(getTranslation(lang, 'error_server_connect'));
         } finally {
             setLoading(false);
         }
@@ -123,7 +127,7 @@ export default function ExamPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     studentName: user?.full_name || "Student",
-                    reason: `🚫 IMTIHON MUZLATILDI: ${reason}`,
+                    reason: `${getTranslation(lang, 'exam_frozen')} ${reason}`,
                     photoBase64,
                 }),
             });
@@ -134,7 +138,7 @@ export default function ExamPage() {
             });
             setStep("result");
         } catch (error) {
-            alert("Xatolik yuz berdi.");
+            alert(getTranslation(lang, 'error_generic'));
         } finally {
             setLoading(false);
         }
@@ -175,7 +179,7 @@ export default function ExamPage() {
                     onClick={handleLogout}
                     className="px-4 py-2 bg-red-600/80 hover:bg-red-600 text-white rounded-xl transition-all border border-red-500/30 text-sm font-medium shadow-[0_0_15px_rgba(239,68,68,0.2)] active:scale-[0.98]"
                 >
-                    Chiqish
+                    {getTranslation(lang, 'btn_logout')}
                 </button>
             </div>
 
