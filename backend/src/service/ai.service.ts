@@ -137,8 +137,7 @@ Imtihon paytida olingan ushbu kadrni tekshiring. Telefon, yordam, nusxa ko'chiri
 
             let content = response.choices[0].message.content || "{}";
             require('fs').appendFileSync('vision-debug.log', `[${new Date().toISOString()}] RESP: ${content}\n`);
-            
-            // Clean markdown if present
+
             content = content.replace(/```json\n?/g, "").replace(/```/g, "").trim();
             const parsed = JSON.parse(content);
 

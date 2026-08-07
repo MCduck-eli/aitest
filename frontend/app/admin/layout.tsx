@@ -44,7 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     return (
         <div className="flex h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
-            {/* Stars background */}
+            {}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-10 left-10 w-1 h-1 bg-white rounded-full opacity-50"></div>
                 <div className="absolute top-20 right-20 w-1 h-1 bg-white rounded-full opacity-30"></div>
@@ -58,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <div className="absolute top-2/3 left-1/4 w-1 h-1 bg-white rounded-full opacity-40"></div>
             </div>
 
-            {/* Sidebar */}
+            {}
             <aside
                 className={`${
                     sidebarOpen ? 'w-64' : 'w-20'
@@ -98,9 +98,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </nav>
             </aside>
 
-            {/* Main Content */}
+            {}
             <div className="flex-1 flex flex-col overflow-hidden relative z-10">
-                {/* Top Bar */}
+                {}
                 <header className="bg-slate-900/80 shadow backdrop-blur-sm">
                     <div className="flex items-center justify-between h-16 px-6">
                         <button
@@ -122,7 +122,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     </div>
                 </header>
 
-                {/* Content */}
+                {}
                 <main className="flex-1 overflow-y-auto p-6">{children}</main>
             </div>
         </div>

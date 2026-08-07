@@ -57,7 +57,7 @@ export default function ResultDetailPage() {
                 ← Back
             </button>
 
-            {/* Student Info */}
+            {}
             <div className="bg-white rounded-lg shadow p-6 mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 mb-6">{result.student_name}</h1>
 
@@ -116,7 +116,7 @@ export default function ResultDetailPage() {
                 </div>
             </div>
 
-            {/* Violations */}
+            {}
             {violations && violations.length > 0 && (
                 <div className="bg-yellow-50 rounded-lg shadow p-6 mb-8 border border-yellow-200">
                     <h2 className="text-xl font-bold text-yellow-900 mb-4">Proctoring Violations</h2>
@@ -153,7 +153,7 @@ export default function ResultDetailPage() {
                 </div>
             )}
 
-            {/* Student Answers */}
+            {}
             <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Question Answers</h2>
                 <div className="space-y-6">

@@ -24,7 +24,7 @@ export default function SettingsPage() {
         <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-8">Sozlamalar</h1>
 
-            {/* Account Information */}
+            {}
             <div className="bg-white rounded-lg shadow p-6 mb-8">
                 <h2 className="text-xl font-bold text-gray-900 mb-6">Hisob ma\'lumotlari</h2>
 
@@ -89,7 +89,7 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            {/* API Documentation */}
+            {}
             <div className="bg-white rounded-lg shadow p-6 mb-8">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">API integratsiyasi</h2>
                 <div className="bg-gray-50 p-4 rounded">
@@ -105,7 +105,7 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            {/* Subscription Info */}
+            {}
             <div className="bg-white rounded-lg shadow p-6 mb-8">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Obuna</h2>
                 <div className="bg-blue-50 border border-blue-200 rounded p-4">
@@ -121,7 +121,7 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            {/* Danger Zone */}
+            {}
             <div className="bg-white rounded-lg shadow p-6 border border-red-200">
                 <h2 className="text-xl font-bold text-red-600 mb-4">Xavfli zona</h2>
                 <button

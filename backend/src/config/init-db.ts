@@ -5,7 +5,7 @@ export const initializeDatabase = async (): Promise<void> => {
     console.log('🔄 Initializing database...');
 
     try {
-        // Training Centers (Organizations)
+
         await query(`
             CREATE TABLE IF NOT EXISTS training_centers (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -22,7 +22,6 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
-        // Users (Admins, Teachers, Students)
         await query(`
             CREATE TABLE IF NOT EXISTS users (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -59,7 +58,6 @@ export const initializeDatabase = async (): Promise<void> => {
             ADD COLUMN IF NOT EXISTS lesson_script TEXT;
         `);
 
-        // Test Banks (Exams/Tests)
         await query(`
             CREATE TABLE IF NOT EXISTS test_banks (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -77,7 +75,6 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
-        // Questions
         await query(`
             CREATE TABLE IF NOT EXISTS questions (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -91,7 +88,6 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
-        // Answer Options
         await query(`
             CREATE TABLE IF NOT EXISTS answer_options (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -103,7 +99,6 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
-        // Student Exam Results
         await query(`
             CREATE TABLE IF NOT EXISTS exam_results (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -124,7 +119,6 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
-        // Student Answers
         await query(`
             CREATE TABLE IF NOT EXISTS student_answers (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -138,7 +132,6 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
-        // Proctoring Violations Log
         await query(`
             CREATE TABLE IF NOT EXISTS proctoring_violations (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -151,7 +144,6 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
-        // Subscription/Payment History
         await query(`
             CREATE TABLE IF NOT EXISTS subscriptions (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -168,7 +160,6 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
-        // Subjects (Fanlar)
         await query(`
             CREATE TABLE IF NOT EXISTS subjects (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -182,7 +173,6 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
-        // Study Groups (Guruhlar)
         await query(`
             CREATE TABLE IF NOT EXISTS study_groups (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -196,7 +186,6 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
-        // Subject-Group Relationships (Fan-Guruh bog'lanishi)
         await query(`
             CREATE TABLE IF NOT EXISTS subject_groups (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -207,7 +196,6 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
-        // Lesson Scripts (Dars skriptlari)
         await query(`
             CREATE TABLE IF NOT EXISTS lesson_scripts (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -225,7 +213,6 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
-        // Student Progress (O'quvchilarning dars darajasi)
         await query(`
             CREATE TABLE IF NOT EXISTS student_progress (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -243,7 +230,6 @@ export const initializeDatabase = async (): Promise<void> => {
             );
         `);
 
-        // Create indexes for performance
         await query(`CREATE INDEX IF NOT EXISTS idx_users_training_center ON users(training_center_id);`);
         await query(`CREATE INDEX IF NOT EXISTS idx_test_banks_training_center ON test_banks(training_center_id);`);
         await query(`CREATE INDEX IF NOT EXISTS idx_questions_test_bank ON questions(test_bank_id);`);
@@ -255,7 +241,6 @@ export const initializeDatabase = async (): Promise<void> => {
         await query(`CREATE INDEX IF NOT EXISTS idx_lesson_scripts_training_center ON lesson_scripts(training_center_id);`);
         await query(`CREATE INDEX IF NOT EXISTS idx_student_progress_training_center ON student_progress(training_center_id);`);
 
-        // Fix foreign keys to allow user deletion without deleting test banks / lesson scripts
         await query(`
             ALTER TABLE lesson_scripts
             ALTER COLUMN created_by DROP NOT NULL;
@@ -292,7 +277,6 @@ export const initializeDatabase = async (): Promise<void> => {
             [masterAdminEmail, masterAdminPasswordHash, masterAdminName],
         );
 
-        // Clean up 'Main Training Center' if exists (not needed anymore)
         await query(
             `DELETE FROM training_centers WHERE name = 'Main Training Center'`
         );

@@ -2,7 +2,7 @@ export interface Lesson {
     id: number;
     name: string;
     topics: string[];
-    keyKnowledge: string; // AI savol tuzish uchun haqiqiy kontent
+    keyKnowledge: string; 
 }
 
 export interface SubjectCategory {

@@ -1,4 +1,4 @@
-// Training Center
+
 export interface TrainingCenter {
     id: string;
     name: string;
@@ -13,7 +13,6 @@ export interface TrainingCenter {
     updated_at: Date;
 }
 
-// User
 export interface User {
     id: string;
     training_center_id: string | null;
@@ -29,10 +28,8 @@ export interface User {
     updated_at: Date;
 }
 
-// User without password
 export interface UserPublic extends Omit<User, 'password_hash'> {}
 
-// Test Bank
 export interface TestBank {
     id: string;
     training_center_id: string;
@@ -48,7 +45,6 @@ export interface TestBank {
     updated_at: Date;
 }
 
-// Question
 export interface Question {
     id: string;
     test_bank_id: string;
@@ -60,7 +56,6 @@ export interface Question {
     updated_at: Date;
 }
 
-// Answer Option
 export interface AnswerOption {
     id: string;
     question_id: string;
@@ -70,7 +65,6 @@ export interface AnswerOption {
     created_at: Date;
 }
 
-// Exam Result
 export interface ExamResult {
     id: string;
     test_bank_id: string;
@@ -89,7 +83,6 @@ export interface ExamResult {
     created_at: Date;
 }
 
-// Subscription
 export interface Subscription {
     id: string;
     training_center_id: string;
@@ -104,7 +97,6 @@ export interface Subscription {
     updated_at: Date;
 }
 
-// JWT Payload
 export interface JWTPayload {
     userId: string;
     trainingCenterId: string | null;
@@ -112,7 +104,6 @@ export interface JWTPayload {
     role: string;
 }
 
-// API Response
 export interface ApiResponse<T = any> {
     success: boolean;
     message?: string;

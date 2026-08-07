@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { ApiResponse } from '../types/models';
 
-// Get Results for a Test
 export const getTestResults = async (
     req: Request<{ testId: string }>,
     res: Response<ApiResponse>,
@@ -13,7 +12,6 @@ export const getTestResults = async (
             return;
         }
 
-        // Verify test belongs to training center
         const testResult = await query(
             `SELECT id FROM test_banks WHERE id = $1 AND training_center_id = $2`,
             [req.params.testId, req.user.trainingCenterId],
@@ -24,7 +22,6 @@ export const getTestResults = async (
             return;
         }
 
-        // Get results
         const results = await query(
             `SELECT id, test_bank_id, student_id, student_name, student_email, score, total_questions,
                     passed, violation_count, has_suspicious_activity, exam_duration_seconds,
@@ -35,7 +32,6 @@ export const getTestResults = async (
             [req.params.testId],
         );
 
-        // Calculate statistics
         const stats = {
             total_attempts: results.rows.length,
             passed_count: results.rows.filter((r: any) => r.passed).length,
@@ -59,7 +55,6 @@ export const getTestResults = async (
     }
 };
 
-// Get Single Result with Detailed Answers
 export const getResultDetail = async (
     req: Request<{ resultId: string }>,
     res: Response<ApiResponse>,
@@ -70,7 +65,6 @@ export const getResultDetail = async (
             return;
         }
 
-        // Get result
         const resultQuery = await query(
             `SELECT er.* FROM exam_results er
              JOIN test_banks tb ON er.test_bank_id = tb.id
@@ -85,7 +79,6 @@ export const getResultDetail = async (
 
         const result = resultQuery.rows[0];
 
-        // Get student answers
         const answersQuery = await query(
             `SELECT sa.*, q.question_text, q.question_type, q.difficulty_level,
                     ao.option_text as selected_option
@@ -97,7 +90,6 @@ export const getResultDetail = async (
             [req.params.resultId],
         );
 
-        // Get violations
         const violationsQuery = await query(
             `SELECT id, violation_type, violation_details, severity, created_at
              FROM proctoring_violations
@@ -120,7 +112,6 @@ export const getResultDetail = async (
     }
 };
 
-// Get Dashboard Analytics
 export const getDashboardAnalytics = async (
     req: Request,
     res: Response<ApiResponse>,
@@ -131,13 +122,11 @@ export const getDashboardAnalytics = async (
             return;
         }
 
-        // Total tests
         const testsQuery = await query(
             `SELECT COUNT(*) as count FROM test_banks WHERE training_center_id = $1`,
             [req.user.trainingCenterId],
         );
 
-        // Total students
         const studentsQuery = await query(
             `SELECT COUNT(DISTINCT student_email) as count FROM exam_results er
              JOIN test_banks tb ON er.test_bank_id = tb.id
@@ -145,7 +134,6 @@ export const getDashboardAnalytics = async (
             [req.user.trainingCenterId],
         );
 
-        // Total exams taken
         const examsQuery = await query(
             `SELECT COUNT(*) as count FROM exam_results er
              JOIN test_banks tb ON er.test_bank_id = tb.id
@@ -153,7 +141,6 @@ export const getDashboardAnalytics = async (
             [req.user.trainingCenterId],
         );
 
-        // Pass rate
         const passRateQuery = await query(
             `SELECT COUNT(CASE WHEN passed THEN 1 END) as passed,
                     COUNT(*) as total
@@ -168,7 +155,6 @@ export const getDashboardAnalytics = async (
                 ? ((passRateQuery.rows[0].passed / passRateQuery.rows[0].total) * 100).toFixed(2)
                 : 0;
 
-        // Recent exams
         const recentQuery = await query(
             `SELECT er.id, er.student_name, er.score, er.passed, er.submitted_at,
                     tb.title

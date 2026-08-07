@@ -29,7 +29,6 @@ const VOICE_BURST_LIMIT = 3;
 const VOICE_BURST_WINDOW_MS = 60000;
 const FACE_CHECK_INTERVAL_MS = 1500;
 
-// Load MediaPipe Face Detection from CDN
 function loadMediaPipeScript(): Promise<void> {
     return new Promise((resolve, reject) => {
         if (typeof window === "undefined") { reject(); return; }
@@ -46,7 +45,6 @@ function loadMediaPipeScript(): Promise<void> {
     });
 }
 
-// Load TF.js + COCO-SSD object detection from CDN
 function loadCocoSsd(): Promise<void> {
     return new Promise((resolve, reject) => {
         if (typeof window === "undefined") { reject(); return; }
@@ -182,7 +180,6 @@ export default function QuestionCard({
         [triggerForceFail],
     );
 
-    // ─── MediaPipe Face Detection (Browser CDN) ───────────────────────────────
     const initFaceDetection = useCallback(async () => {
         try {
             await loadMediaPipeScript();
@@ -209,7 +206,7 @@ export default function QuestionCard({
                 if (detections.length === 0) {
                     noFaceCountRef.current += 1;
                     if (noFaceCountRef.current >= 2) {
-                        // 2 consecutive no-face frames → block
+
                         triggerForceFail(
                             "Yuz aniqlanmadi — imtihon to'xtatildi.",
                             takeSnapshot(),
@@ -225,11 +222,11 @@ export default function QuestionCard({
                     );
                 } else {
                     noFaceCountRef.current = 0;
-                    // Check if face is looking away by checking bounding box center
+
                     const box = detections[0].boundingBox;
                     if (box) {
                         const centerX = box.xCenter;
-                        // If face center is too far left or right → looking away
+
                         if (centerX < 0.2 || centerX > 0.8) {
                             triggerForceFail(
                                 "Ko'zlaringiz ekranda emas — imtihon to'xtatildi.",
@@ -252,7 +249,6 @@ export default function QuestionCard({
         }
     }, [triggerForceFail]);
 
-    // Run face detection on video frame
     const checkFace = useCallback(async () => {
         if (!isExamActive.current) return;
         if (!faceDetectionRef.current || !videoRef.current) return;
@@ -262,7 +258,6 @@ export default function QuestionCard({
         } catch {}
     }, []);
 
-    // ─── COCO-SSD Object Detection (phone, book, laptop) ─────────────────────
     const initObjectDetection = useCallback(async () => {
         try {
             await loadCocoSsd();
@@ -272,7 +267,7 @@ export default function QuestionCard({
                 return;
             }
             console.log("Loading COCO-SSD model...");
-            // Use mobilenet_v2 (more accurate than lite version)
+
             const model = await cocoSsd.load({ base: "mobilenet_v2" });
             cocoModelRef.current = model;
             console.log("✅ COCO-SSD ready");
@@ -289,7 +284,6 @@ export default function QuestionCard({
             const predictions: Array<{ class: string; score: number }> =
                 await cocoModelRef.current.detect(videoRef.current);
 
-            // Log all detections for debugging
             if (predictions.length > 0) {
                 console.log("COCO detections:", predictions.map(p => `${p.class}(${(p.score * 100).toFixed(0)}%)`).join(", "));
             }
@@ -297,19 +291,15 @@ export default function QuestionCard({
             const BANNED = ["cell phone", "book", "laptop", "tv", "remote"];
             const frame = takeSnapshot();
 
-            // Count persons
             const persons = predictions.filter((p) => p.class === "person" && p.score > 0.6);
             if (persons.length >= 2) {
                 triggerForceFail("Kadrda bir nechta odam aniqlandi — imtihon to'xtatildi.", frame);
                 return;
             }
 
-            // Check for banned objects - lower threshold to 0.30
             for (const pred of predictions) {
                 if (BANNED.includes(pred.class) && pred.score > 0.30) {
-                    // Map COCO labels to Uzbek
-                    // NOTE: COCO often misclassifies daftar/book as "laptop"
-                    // and phone as "remote", so we group them accordingly
+
                     const label =
                         pred.class === "cell phone" || pred.class === "remote"
                             ? "📱 Telefon"
@@ -428,17 +418,14 @@ export default function QuestionCard({
                 setProctoringStatus("🟢 AI Kamera faol");
                 await startAudioMonitoring();
 
-                // Wait for video to be ready then init face detection
                 setTimeout(async () => {
                     if (!isMounted) return;
                     await initFaceDetection();
 
-                    // Start face detection interval
                     faceCheckIntervalRef.current = setInterval(() => {
                         checkFace();
                     }, FACE_CHECK_INTERVAL_MS);
 
-                    // Init COCO-SSD object detection (phone, book, laptop)
                     await initObjectDetection();
                     objCheckIntervalRef.current = setInterval(() => {
                         checkObjects();

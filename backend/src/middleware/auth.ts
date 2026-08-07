@@ -25,7 +25,6 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
         const payload = verifyToken(token);
 
-        // Fallback for super_admin trainingCenterId
         if (payload.role === 'super_admin' && !payload.trainingCenterId) {
             const centerResult = await query(
                 `SELECT id FROM training_centers ORDER BY created_at LIMIT 1`

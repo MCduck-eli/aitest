@@ -260,9 +260,9 @@ export const login = async (
                 role: "super_admin" as any,
                 training_center_id: trainingCenterId,
                 is_active: true,
-                // @ts-ignore
+
                 created_at: new Date().toISOString(),
-                // @ts-ignore
+
                 updated_at: new Date().toISOString(),
             };
 

@@ -1,6 +1,6 @@
 export const translations = {
   uz: {
-    // page.tsx (Home)
+
     hero_title: "Kelajak",
     hero_title_span: "Ta'limi",
     hero_subtitle: "Sun'iy intellekt nazoratidagi xolis onlayn imtihonlar.",
@@ -14,7 +14,6 @@ export const translations = {
     feature2_title: "Anti-Cheat Tizimi",
     feature2_desc: "Tablarni almashtirish va ko'chirish avtomatik bloklanadi.",
 
-    // student/page.tsx (Login)
     student_profile: "Talaba Profili",
     student_profile_desc: "Platformaga kirish va imtihonni boshlash uchun ma'lumotlaringizni kiriting.",
     step1_title: "Shaxsiy Ma'lumotlar",
@@ -36,7 +35,6 @@ export const translations = {
     error_generic: "Xatolik yuz berdi. Iltimos, yana urinib ko'ring.",
     error_login_failed: "Kirish amalga oshmadi",
 
-    // exam/page.tsx (Exam session)
     exam_camera_permission: "Kameraga ruxsat bering. Imtihonni boshlash uchun kamera zarur.",
     exam_loading: "Yuklanmoqda...",
     exam_processing: "Test natijalari tayyorlanmoqda, iltimos kuting...",
@@ -94,7 +92,7 @@ export const translations = {
     er_btn_restart: "Yangi imtihon topshirish",
   },
   ru: {
-    // page.tsx (Home)
+
     hero_title: "Образование",
     hero_title_span: "Будущего",
     hero_subtitle: "Объективные онлайн-экзамены под контролем искусственного интеллекта.",
@@ -108,7 +106,6 @@ export const translations = {
     feature2_title: "Anti-Cheat Система",
     feature2_desc: "Переключение вкладок и списывание автоматически блокируются.",
 
-    // student/page.tsx (Login)
     student_profile: "Профиль Студента",
     student_profile_desc: "Введите свои данные для входа в систему и начала экзамена.",
     step1_title: "Личные Данные",
@@ -130,7 +127,6 @@ export const translations = {
     error_generic: "Произошла ошибка. Пожалуйста, попробуйте еще раз.",
     error_login_failed: "Вход не выполнен",
 
-    // exam/page.tsx (Exam session)
     exam_camera_permission: "Разрешите доступ к камере. Камера необходима для начала экзамена.",
     exam_loading: "Загрузка...",
     exam_processing: "Подготовка результатов теста, пожалуйста, подождите...",

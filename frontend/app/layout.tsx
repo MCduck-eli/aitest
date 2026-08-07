@@ -42,9 +42,9 @@ export default function RootLayout({
         >
             <body className="min-h-screen relative overflow-x-hidden bg-slate-950 text-slate-200">
                 <CssParticles />
-                {/* Language Toggle globally available */}
+                {}
                 <LangToggle />
-                {/* Page Content with Slide Transition */}
+                {}
                 <div className="flex-grow flex flex-col relative z-10 w-full h-full">
                     <PageTransition>{children}</PageTransition>
                 </div>

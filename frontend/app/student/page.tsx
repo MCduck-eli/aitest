@@ -112,14 +112,16 @@ export default function StudentLoginPage() {
             const data = await response.json();
 
             if (!response.ok) {
-                setError(data.error || getTranslation(lang, 'error_login_failed'));
+                setError(
+                    data.error || getTranslation(lang, "error_login_failed"),
+                );
                 return;
             }
 
             setAuth(data.data.token, data.data.user);
             router.push("/exam");
         } catch (err) {
-            setError(getTranslation(lang, 'error_generic'));
+            setError(getTranslation(lang, "error_generic"));
         } finally {
             setLoading(false);
         }
@@ -134,9 +136,11 @@ export default function StudentLoginPage() {
                         loop
                         muted
                         playsInline
+                        preload="metadata"
                         className="w-full h-full object-cover opacity-70 hover:opacity-90 transition-opacity duration-700"
                     >
-                        <source src="/space.mp4" type="video/mp4" />
+                        <source src="/space.webm" type="video/webm" />
+                        <source src="/space_compressed.mp4" type="video/mp4" />
                     </video>
                 </div>
 
@@ -160,7 +164,7 @@ export default function StudentLoginPage() {
                             </div>
                         </div>
                         <h2 className="text-2xl font-bold text-white mb-2 font-orbitron text-center">
-                            {getTranslation(lang, 'student_profile')}
+                            {getTranslation(lang, "student_profile")}
                         </h2>
                         <p className="text-slate-400 text-center text-sm">
                             Platformaga kirish va imtihonni boshlash uchun

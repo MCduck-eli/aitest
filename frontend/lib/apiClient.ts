@@ -16,7 +16,6 @@ const onTokenRefreshed = (token: string) => {
 export const apiFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
   const { token, refreshToken } = useAuthStore.getState();
 
-  // Add authorization header if token exists
   const headers: Record<string, string> = {
     ...options.headers as Record<string, string>,
     'Content-Type': 'application/json',
@@ -32,7 +31,6 @@ export const apiFetch = async (url: string, options: RequestInit = {}): Promise<
       headers,
     });
 
-    // If 401 unauthorized, try to refresh token
     if (response.status === 401 && refreshToken) {
       if (!isRefreshing) {
         isRefreshing = true;
@@ -48,16 +46,14 @@ export const apiFetch = async (url: string, options: RequestInit = {}): Promise<
           if (refreshResponse.ok) {
             const data = await refreshResponse.json();
             const newToken = data.data.accessToken;
-            
-            // Update auth store with new token
+
             useAuthStore.getState().setAuth(newToken, refreshToken, useAuthStore.getState().user);
-            
+
             onTokenRefreshed(newToken);
-            
-            // Retry original request with new token
+
             return apiFetch(url, options);
           } else {
-            // Refresh failed, logout user
+
             useAuthStore.getState().logout();
             window.location.href = '/admin/auth';
             throw new Error('Token refresh failed');
@@ -70,7 +66,7 @@ export const apiFetch = async (url: string, options: RequestInit = {}): Promise<
           isRefreshing = false;
         }
       } else {
-        // Wait for token refresh to complete
+
         return new Promise((resolve, reject) => {
           subscribeTokenRefresh((newToken: string) => {
             apiFetch(url, options).then(resolve).catch(reject);

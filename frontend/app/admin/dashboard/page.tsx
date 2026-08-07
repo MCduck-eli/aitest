@@ -48,32 +48,27 @@ export default function AdminDashboard() {
 
         const fetchData = async () => {
             try {
-                // Fetch users
+
                 const usersResponse = await apiFetch('/api/v1/admin/users/list');
                 const usersData = await usersResponse.json();
                 if (usersData.success) setUsers(usersData.data);
 
-                // Fetch subjects
                 const subjectsResponse = await apiFetch('/api/v1/admin/subjects');
                 const subjectsData = await subjectsResponse.json();
                 if (subjectsData.success) setSubjects(subjectsData.data);
 
-                // Fetch groups
                 const groupsResponse = await apiFetch('/api/v1/admin/groups');
                 const groupsData = await groupsResponse.json();
                 if (groupsData.success) setGroups(groupsData.data);
 
-                // Fetch lesson scripts
                 const scriptsResponse = await apiFetch('/api/v1/admin/lesson-scripts');
                 const scriptsData = await scriptsResponse.json();
                 if (scriptsData.success) setLessonScripts(scriptsData.data);
 
-                // Fetch student progress
                 const progressResponse = await apiFetch('/api/v1/admin/student-progress');
                 const progressData = await progressResponse.json();
                 if (progressData.success) setStudentProgress(progressData.data);
 
-                // Fetch subject groups
                 const subjectGroupsResponse = await apiFetch('/api/v1/admin/subject-groups');
                 const subjectGroupsData = await subjectGroupsResponse.json();
                 if (subjectGroupsData.success) setSubjectGroups(subjectGroupsData.data);
@@ -385,22 +380,19 @@ export default function AdminDashboard() {
 
     const fetchData = async () => {
         try {
-            // Fetch users
+
             const usersResponse = await apiFetch('/api/v1/admin/users/list');
             const usersData = await usersResponse.json();
             if (usersData.success) setUsers(usersData.data);
 
-            // Fetch subjects
             const subjectsResponse = await apiFetch('/api/v1/admin/subjects');
             const subjectsData = await subjectsResponse.json();
             if (subjectsData.success) setSubjects(subjectsData.data);
 
-            // Fetch groups
             const groupsResponse = await apiFetch('/api/v1/admin/groups');
             const groupsData = await groupsResponse.json();
             if (groupsData.success) setGroups(groupsData.data);
 
-            // Fetch lesson scripts
             const scriptsResponse = await apiFetch('/api/v1/admin/lesson-scripts');
             const scriptsData = await scriptsResponse.json();
             if (scriptsData.success) setLessonScripts(scriptsData.data);
@@ -478,7 +470,7 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* Subjects (Fanlar) */}
+            {}
             {user?.role === 'admin' && (
                 <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 p-6 rounded-2xl shadow-xl mb-8">
                     <h2 className="text-xl font-bold text-slate-200 mb-4">Fanlar (Subjects)</h2>
@@ -542,7 +534,7 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* Subject-Group Linking (Fan-Guruh bog'lanishi) */}
+            {}
             {user?.role === 'admin' && (
                 <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 p-6 rounded-2xl shadow-xl mb-8">
                     <h2 className="text-xl font-bold text-slate-200 mb-4">Fan-Guruh Bog'lanishi</h2>
@@ -600,7 +592,7 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* Groups (Guruhlar) */}
+            {}
             {user?.role === 'admin' && (
                 <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 p-6 rounded-2xl shadow-xl mb-8">
                     <h2 className="text-xl font-bold text-slate-200 mb-4">Guruhlar (Study Groups)</h2>
@@ -647,7 +639,7 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* Lesson Scripts (Dars skriptlari) */}
+            {}
             {user?.role === 'admin' && (
                 <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 p-6 rounded-2xl shadow-xl mb-8">
                     <h2 className="text-xl font-bold text-slate-200 mb-4">Dars Skriptlari (AI savollar yaratish)</h2>
@@ -728,7 +720,7 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* Student Progress (O'quvchilarning dars darajasi) */}
+            {}
             {user?.role === 'admin' && (
                 <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 p-6 rounded-2xl shadow-xl mb-8">
                     <h2 className="text-xl font-bold text-slate-200 mb-4">O'quvchilarning Dars Darajasi</h2>
@@ -767,7 +759,7 @@ export default function AdminDashboard() {
                 </div>
             )}
 
-            {/* Users (Adminlar) */}
+            {}
             {user?.role === 'super_admin' && (
                 <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 p-6 rounded-2xl shadow-xl">
                     <div className="flex items-center justify-between mb-4">

@@ -15,7 +15,6 @@ import {
 } from "../data/syllabus";
 import { query } from "../config/database";
 
-// Dars skriptining kontentini boyitish — qisqa bo'lsa syllabus dan qo'shib berish
 const enrichScriptContent = (rawContent: string, subjectName: string): string => {
     const isShort = !rawContent || rawContent.trim().length < 200;
     const looksLikeTopicList = /^[\d\-\.\s•\*]+[а-яa-zA-ZА-ЯёЁ]/m.test(rawContent) 
@@ -23,10 +22,9 @@ const enrichScriptContent = (rawContent: string, subjectName: string): string =>
         && rawContent.trim().length < 500;
 
     if (!isShort && !looksLikeTopicList) {
-        return rawContent; // Kontent yaxshi, o'zgartirma
+        return rawContent; 
     }
 
-    // Syllabusdan mos darslarni topib, keyKnowledge ni qo'sh
     const relevantLessons = FoundationSyllabus.filter(lesson => {
         const subjectLower = subjectName.toLowerCase();
         const lessonNameLower = lesson.name.toLowerCase();
@@ -41,7 +39,7 @@ const enrichScriptContent = (rawContent: string, subjectName: string): string =>
         } else if (subjectLower.includes('telegram') || subjectLower.includes('bot')) {
             return lesson.id >= 33 && lesson.id <= 36;
         }
-        return true; // Hammasini qo'sh
+        return true; 
     }).slice(0, 5);
 
     if (relevantLessons.length === 0) return rawContent;
@@ -54,7 +52,6 @@ const enrichScriptContent = (rawContent: string, subjectName: string): string =>
         ? `${rawContent}\n\n=== QUYIDAGI BILIMLAR ASOSIDA SAVOL TUZING ===\n${enriched}`
         : enriched;
 };
-
 
 const handleError = (
     res: Response,
@@ -225,7 +222,6 @@ export const startExamByTopic = async (
             const subjectName = lessonScript.subject_name || 'Fan';
             const groupName = lessonScript.group_name || 'Guruh';
 
-            // Kontent sifatsiz bo'lsa, syllabusdan boyitilgan kontentni qo'sh
             const enrichedContent = enrichScriptContent(lessonScript.content || '', subjectName);
 
             const questions = await generateQuestionsFromScript(

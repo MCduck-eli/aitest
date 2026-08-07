@@ -43,7 +43,6 @@ const generateUniqueAdminEmail = async (fullName: string): Promise<string> => {
     }
 };
 
-// Create Test Bank
 export const createTestBank = async (
     req: Request<
         {},
@@ -153,7 +152,6 @@ export const createAdminUser = async (
             return;
         }
 
-        // Admin uchun subject, study_group, lesson_script majburiy emas
         if (
             role === "teacher" &&
             (!subject?.trim() || !study_group?.trim() || !lesson_script?.trim())
@@ -168,7 +166,6 @@ export const createAdminUser = async (
         const centerName = full_name.trim();
         const generatedEmail = await generateUniqueAdminEmail(centerName);
 
-        // Super_admin uchun har safar yangi o'quv markazi yaratiladi
         let trainingCenterId;
         if (req.user.role === "super_admin") {
             const centerResult = await query(
@@ -182,7 +179,7 @@ export const createAdminUser = async (
         } else {
             trainingCenterId = req.user.trainingCenterId;
             if (!trainingCenterId) {
-                // Zaxira: mavjud birinchi training center
+
                 const centerResult = await query(
                     `SELECT id FROM training_centers ORDER BY created_at LIMIT 1`,
                 );
@@ -328,7 +325,6 @@ export const createAdminUser = async (
     }
 };
 
-// Get All Tests for Training Center
 export const getTestBanks = async (
     req: Request,
     res: Response<ApiResponse>,
@@ -361,7 +357,6 @@ export const getTestBanks = async (
     }
 };
 
-// Get Single Test
 export const getTestBank = async (
     req: Request<{ id: string }>,
     res: Response<ApiResponse>,
@@ -396,7 +391,6 @@ export const getTestBank = async (
     }
 };
 
-// Update Test Bank
 export const updateTestBank = async (
     req: Request<{ id: string }, {}, Partial<TestBank>>,
     res: Response<ApiResponse>,
@@ -458,7 +452,6 @@ export const updateTestBank = async (
     }
 };
 
-// Delete Test Bank
 export const deleteTestBank = async (
     req: Request<{ id: string }>,
     res: Response<ApiResponse>,
@@ -493,8 +486,6 @@ export const deleteTestBank = async (
         res.status(500).json({ success: false, error: error.message });
     }
 };
-
-// ========== SUBJECTS (Fanlar) ==========
 
 export const createSubject = async (
     req: Request<{}, {}, { name: string; description?: string }>,
@@ -654,8 +645,6 @@ export const deleteSubject = async (
     }
 };
 
-// ========== STUDY GROUPS (Guruhlar) ==========
-
 export const createGroup = async (
     req: Request<{}, {}, { name: string; description?: string }>,
     res: Response<ApiResponse>,
@@ -814,8 +803,6 @@ export const deleteGroup = async (
     }
 };
 
-// ========== SUBJECT-GROUP RELATIONSHIPS (Fan-Guruh bog'lanishi) ==========
-
 export const linkSubjectGroup = async (
     req: Request<{}, {}, { subject_id: string; group_id: string }>,
     res: Response<ApiResponse>,
@@ -933,8 +920,6 @@ export const getSubjectGroups = async (
     }
 };
 
-// ========== LESSON SCRIPTS (Dars skriptlari) ==========
-
 export const createLessonScript = async (
     req: Request<
         {},
@@ -970,7 +955,6 @@ export const createLessonScript = async (
         const topics = await extractTopicsFromScript(content);
         const topicsJson = JSON.stringify(topics);
 
-        // Agar group_ids berilgan bo'lsa, har bir guruh uchun alohida lesson script yaratish
         if (group_ids?.length) {
             const createdScripts = [];
             for (const group_id of group_ids) {
@@ -997,7 +981,7 @@ export const createLessonScript = async (
                 data: createdScripts,
             });
         } else {
-            // Group berilmagan bo'lsa, fan uchun umumiy lesson script yaratish
+
             const result = await query(
                 `INSERT INTO lesson_scripts (training_center_id, subject_id, group_id, title, content, topics, created_by)
                  VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
@@ -1025,7 +1009,6 @@ export const createLessonScript = async (
     }
 };
 
-// Dars skriptidan AI savollar generatsiya qilish
 export const generateQuestionsFromLessonScript = async (
     req: Request<{ id: string }>,
     res: Response<ApiResponse>,
@@ -1226,8 +1209,6 @@ export const deleteLessonScript = async (
     }
 };
 
-// ========== STUDENT PROGRESS (O'quvchilarning dars darajasi) ==========
-
 export const getStudentProgress = async (
     req: Request,
     res: Response<ApiResponse>,
@@ -1271,8 +1252,6 @@ export const getStudentProgress = async (
     }
 };
 
-// ========== USERS (Adminlar ro'yxati) ==========
-
 export const getUsers = async (
     req: Request,
     res: Response<ApiResponse>,
@@ -1286,7 +1265,6 @@ export const getUsers = async (
             return;
         }
 
-        // Super admin barcha adminlarni ko'radi
         let result;
         if (req.user.role === "super_admin") {
             result = await query(
@@ -1328,7 +1306,6 @@ export const deleteUser = async (
             return;
         }
 
-        // Super admin o'zini o'chira olmaydi
         if (req.params.id === req.user.userId) {
             res.status(400).json({
                 success: false,
@@ -1339,7 +1316,7 @@ export const deleteUser = async (
 
         let result;
         if (req.user.role === "super_admin") {
-            // Super_admin barcha adminlarni o'chira oladi
+
             result = await query(
                 `DELETE FROM users
                  WHERE id = $1 AND role IN ('admin', 'teacher')
@@ -1347,7 +1324,7 @@ export const deleteUser = async (
                 [req.params.id],
             );
         } else {
-            // Admin faqat o'z training_center_id dagi foydalanuvchilarni o'chira oladi
+
             result = await query(
                 `DELETE FROM users
                  WHERE id = $1 AND training_center_id = $2 AND role != 'super_admin'
@@ -1374,7 +1351,6 @@ export const deleteUser = async (
     }
 };
 
-// Barcha adminlarni o'chirish (super_admin uchun)
 export const deleteAllAdmins = async (
     req: Request,
     res: Response<ApiResponse>,
@@ -1413,7 +1389,6 @@ export const deleteAllAdmins = async (
     }
 };
 
-// Admin parolini reset qilish
 export const resetAdminPassword = async (
     req: Request<{ id: string }>,
     res: Response<ApiResponse>,
@@ -1465,9 +1440,6 @@ export const resetAdminPassword = async (
     }
 };
 
-// ========== QUESTIONS ==========
-
-// Create Question
 export const createQuestion = async (
     req: Request<
         { testId: string },
@@ -1505,7 +1477,6 @@ export const createQuestion = async (
             return;
         }
 
-        // Verify test belongs to training center
         const testResult = await query(
             `SELECT id FROM test_banks WHERE id = $1 AND training_center_id = $2`,
             [req.params.testId, req.user.trainingCenterId],
@@ -1516,14 +1487,12 @@ export const createQuestion = async (
             return;
         }
 
-        // Get max order index
         const orderResult = await query(
             `SELECT MAX(order_index) as max_order FROM questions WHERE test_bank_id = $1`,
             [req.params.testId],
         );
         const nextOrder = (orderResult.rows[0].max_order || 0) + 1;
 
-        // Create question
         const questionResult = await query(
             `INSERT INTO questions (test_bank_id, question_text, question_type, difficulty_level, order_index)
              VALUES ($1, $2, $3, $4, $5)
@@ -1539,7 +1508,6 @@ export const createQuestion = async (
 
         const questionId = questionResult.rows[0].id;
 
-        // Create answer options
         const optionsData = [];
         for (let i = 0; i < options.length; i++) {
             const optionResult = await query(
@@ -1551,7 +1519,6 @@ export const createQuestion = async (
             optionsData.push(optionResult.rows[0]);
         }
 
-        // Update test total questions count
         await query(
             `UPDATE test_banks SET total_questions = total_questions + 1 WHERE id = $1`,
             [req.params.testId],
@@ -1571,7 +1538,6 @@ export const createQuestion = async (
     }
 };
 
-// Get Questions for Test
 export const getQuestions = async (
     req: Request<{ testId: string }>,
     res: Response<ApiResponse>,
@@ -1585,7 +1551,6 @@ export const getQuestions = async (
             return;
         }
 
-        // Verify test belongs to training center
         const testResult = await query(
             `SELECT id FROM test_banks WHERE id = $1 AND training_center_id = $2`,
             [req.params.testId, req.user.trainingCenterId],
@@ -1596,7 +1561,6 @@ export const getQuestions = async (
             return;
         }
 
-        // Get questions with options
         const questionsResult = await query(
             `SELECT * FROM questions WHERE test_bank_id = $1 ORDER BY order_index`,
             [req.params.testId],
@@ -1624,7 +1588,6 @@ export const getQuestions = async (
     }
 };
 
-// Update Question
 export const updateQuestion = async (
     req: Request<{ testId: string; questionId: string }, {}, any>,
     res: Response<ApiResponse>,
@@ -1640,7 +1603,6 @@ export const updateQuestion = async (
 
         const { question_text, difficulty_level, options } = req.body;
 
-        // Verify test and question
         const testResult = await query(
             `SELECT q.id FROM questions q
              JOIN test_banks tb ON q.test_bank_id = tb.id
@@ -1660,7 +1622,6 @@ export const updateQuestion = async (
             return;
         }
 
-        // Update question
         const result = await query(
             `UPDATE questions
              SET question_text = COALESCE($1, question_text),
@@ -1671,7 +1632,6 @@ export const updateQuestion = async (
             [question_text, difficulty_level, req.params.questionId],
         );
 
-        // Update options if provided
         if (Array.isArray(options)) {
             await query(`DELETE FROM answer_options WHERE question_id = $1`, [
                 req.params.questionId,
@@ -1701,7 +1661,6 @@ export const updateQuestion = async (
     }
 };
 
-// Delete Question
 export const deleteQuestion = async (
     req: Request<{ testId: string; questionId: string }>,
     res: Response<ApiResponse>,
@@ -1715,7 +1674,6 @@ export const deleteQuestion = async (
             return;
         }
 
-        // Verify test and question
         const testResult = await query(
             `SELECT q.id FROM questions q
              JOIN test_banks tb ON q.test_bank_id = tb.id
@@ -1735,12 +1693,10 @@ export const deleteQuestion = async (
             return;
         }
 
-        // Delete question
         await query(`DELETE FROM questions WHERE id = $1`, [
             req.params.questionId,
         ]);
 
-        // Update test total questions count
         await query(
             `UPDATE test_banks SET total_questions = total_questions - 1 WHERE id = $1`,
             [req.params.testId],

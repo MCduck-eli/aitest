@@ -78,7 +78,7 @@ export default function ResultsPage() {
         <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-8">Imtihon natijalari</h1>
 
-            {/* Test Selector */}
+            {}
             <div className="mb-8">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                     Testni tanlang
@@ -125,7 +125,7 @@ export default function ResultsPage() {
                         </div>
                     )}
 
-                    {/* Results Table */}
+                    {}
                     <div className="bg-white rounded-lg shadow">
                         <div className="overflow-x-auto">
                             <table className="w-full">

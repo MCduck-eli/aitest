@@ -51,7 +51,7 @@ export default function StudentLoginForm({
         visible: { opacity: 1, transition: { duration: 0.2 } },
         exit: { opacity: 0, transition: { duration: 0.1 } },
     };
-    
+
     const { lang } = useLangStore();
 
     return (
@@ -74,7 +74,7 @@ export default function StudentLoginForm({
                 <form onSubmit={handleLogin} className="relative">
                     {currentStep === 1 && (
                         <motion.div
-                            // @ts-ignore
+
                             variants={stepVariants}
                             initial="hidden"
                             animate="visible"
@@ -108,7 +108,7 @@ export default function StudentLoginForm({
 
                     {currentStep === 2 && (
                         <motion.div
-                            // @ts-ignore
+
                             variants={stepVariants}
                             initial="hidden"
                             animate="visible"
@@ -165,7 +165,7 @@ export default function StudentLoginForm({
 
                     {currentStep === 3 && (
                         <motion.div
-                            // @ts-ignore
+
                             variants={stepVariants}
                             initial="hidden"
                             animate="visible"

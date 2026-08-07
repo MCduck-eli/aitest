@@ -252,7 +252,7 @@ export default function TestEditPage() {
                 </div>
             )}
 
-            {/* Questions List */}
+            {}
             <div className="space-y-4">
                 {questions.map((question, index) => (
                     <div key={question.id} className="bg-white rounded-lg shadow p-6">

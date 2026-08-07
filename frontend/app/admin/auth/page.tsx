@@ -66,7 +66,7 @@ export default function AdminAuthPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-            {/* Stars background */}
+            {}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-10 left-10 w-1 h-1 bg-white rounded-full opacity-50"></div>
                 <div className="absolute top-20 right-20 w-1 h-1 bg-white rounded-full opacity-30"></div>
