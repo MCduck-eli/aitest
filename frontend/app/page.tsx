@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useLangStore } from "@/store/langStore";
 import { getTranslation } from "@/lib/i18n";
 
@@ -15,7 +15,7 @@ export default function HomePage() {
         router.push("/student");
     };
 
-    const containerVariants = {
+    const containerVariants: Variants = {
         hidden: { opacity: 0 },
         visible: {
             opacity: 1,
@@ -25,7 +25,7 @@ export default function HomePage() {
         },
     };
 
-    const itemVariants = {
+    const itemVariants: Variants = {
         hidden: { opacity: 0, y: 15 },
         visible: {
             opacity: 1,
