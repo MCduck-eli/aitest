@@ -465,7 +465,7 @@ export default function QuestionCard({
 
                     groqCheckIntervalRef.current = setInterval(() => {
                         checkGroqVision();
-                    }, 20000); // 20 seconds
+                    }, 5000); // 5 seconds
                 }, 2000);
             })
             .catch(() => triggerForceFail("Kamera/Mikrofonga ruxsat yo'q.", null));

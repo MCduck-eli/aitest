@@ -1,5 +1,6 @@
     import OpenAI from "openai";
     import dotenv from "dotenv";
+    import { GoogleGenerativeAI } from "@google/generative-ai";
 
     dotenv.config();
 
@@ -22,6 +23,7 @@
         "external_help",
         "reading_material",
         "screen_copy",
+        "looking_away",
     ]);
 
     const VALID_VIOLATION_TYPES = new Set([
@@ -80,16 +82,21 @@
                 ? `Ro'yxatdan o'tgan talaba: "${referenceDescription}". Yuz shakli, jinsi, yoshi, soch rangi, ko'zoynak, kiyim va boshqa belgilar bo'yicha solishtiring. Har qanday shubhali farq bo'lsa person_swap deb belgilang.`
                 : "Birinchi marta tekshirilmoqda. Talaba yuzini, sochini, kiyimini va boshqa aniq belgilarni personDescription ga yozing.";
 
-            const response = await groqClient.chat.completions.create({
-                model: VISION_MODEL,
-                messages: [
-                    {
-                        role: "user",
-                        content: [
-                            {
-                                type: "text",
-                                text: `Siz qattiq imtihon proctoring tizimisiz. Kameradan olingan kadrni diqqat bilan tahlil qiling va qoidabuzarliklarni aniqlang.
+            let content = "";
+            let parsed: any = {};
 
+            if (process.env.GEMINI_API_KEY) {
+                const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+                
+                // Convert base64
+                let base64Data = photoBase64;
+                if (base64Data.startsWith("data:image")) {
+                    base64Data = base64Data.split(",")[1];
+                }
+
+                const result = await model.generateContent([
+                    `Siz qattiq imtihon proctoring tizimisiz. Kameradan olingan kadrni diqqat bilan tahlil qiling va qoidabuzarliklarni aniqlang.
 QOIDABUZARLIK TURLARI:
 1. multiple_persons — kadrda 2+ odam, yon tomonda bosh/el ko'rinishi, ortda odam, aks yoki soya
 2. phone — telefon, smartfon, planshet, quloqchin bilan telefon ishlatish, stolda telefon, qo'lda telefon (qisman ko'rinsa ham)
@@ -109,6 +116,7 @@ QATTIQ QOIDALAR:
 - Ikkinchi ekran, noutbuk, planshet yoki ekran ko'rinsa screen_copy yoki device_cheat
 - person_swap faqat reference bilan solishtirganda ishonchli bo'lsa
 - Agar rasmda yordam olish belgisi bo'lsa, hatto aniq bo'lmasa ham external_help ni yuqori ishonch bilan belgilang.
+- Talaba kameraga yoki ekranga to'g'ri qaramasdan, boshqa tomonga (yon, past, tepa) qarab tursa, zudlik bilan looking_away deb belgilang! Bu qat'iyan man qilinadi.
 
 ${referenceHint}
 
@@ -119,27 +127,78 @@ Faqat JSON formatida qaytaring, hech qanday qo'shimcha so'z va belgilarsiz:
   "confidence": number,
   "reason": string,
   "personDescription": string
-}
-
-Imtihon paytida olingan ushbu kadrni tekshiring. Telefon, yordam, nusxa ko'chirish va odam almashishni qidir.`,
-                            },
-                            {
-                                type: "image_url",
-                                image_url: {
-                                    url: normalizeImageUrl(photoBase64),
+}`,
+                    {
+                        inlineData: {
+                            data: base64Data,
+                            mimeType: "image/jpeg"
+                        }
+                    }
+                ]);
+                
+                content = result.response.text() || "{}";
+            } else {
+                const response = await groqClient.chat.completions.create({
+                    model: VISION_MODEL,
+                    messages: [
+                        {
+                            role: "user",
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `Siz qattiq imtihon proctoring tizimisiz. Kameradan olingan kadrni diqqat bilan tahlil qiling va qoidabuzarliklarni aniqlang.
+    
+    QOIDABUZARLIK TURLARI:
+    1. multiple_persons — kadrda 2+ odam, yon tomonda bosh/el ko'rinishi, ortda odam, aks yoki soya
+    2. phone — telefon, smartfon, planshet, quloqchin bilan telefon ishlatish, stolda telefon, qo'lda telefon (qisman ko'rinsa ham)
+    3. no_person — hech kim yo'q, yuz yopiq, kamera yopilgan, faqat orqa fon
+    4. person_swap — imtihon topshirayotgan talaba boshqa odamga almashgan (yuz, jins, yosh, soch, kiyim farqi)
+    5. device_cheat — ikkinchi ekran, noutbuk, planshetdan nusxa ko'chirish, telefon ekraniga qarash, klaviaturadan emas boshqa joydan yozish
+    6. external_help — yon tomondan yordam, ko'rsatib turish, birga javob yozish, qo'l yoki barmoq bilan ishora, yon tomondan suhbat
+    7. reading_material — qog'oz, daftar, kitob, varaq, qo'l/yoqa ustidagi yozuvlardan o'qish
+    8. screen_copy — monitor, televizor, ikkinchi ekrandan o'qish, ekran yonida nusxa ko'chirish harakati
+    9. looking_away — ko'zlar ekrandan uzoqlashgan, bosh o'ng/chapga yoki pastga burilgan, yuz ekrandan uzoq tomonga qaratilgan; agar ko'zlar 2-3 soniya davomida ekrandan uzilgan bo'lsa, bu yuqori ishonch bilan looking_away deb belgilang.
+    
+    QATTIQ QOIDALAR:
+    - Telefon qisman ko'rinsa ham phone deb belgilang. Agar telefon ko'rinsa, hatto kichik bo'lsa ham qoldirmang.
+    - Boshqa odamning qo'li, yelkasi, boshi, yuzlari yoki biror kishi yon tomondan ko'rsatilayotgan bo'lsa external_help yoki multiple_persons deb belgilang.
+    - Odamning boshqa tomondan javob ko'rsatishi, ishorasi, birga yozishi, ko'rsatib turishi yoki suhbat qilishi external_help deb belgilang.
+    - Qog'oz/daftar/kitob ko'rinsa reading_material
+    - Ikkinchi ekran, noutbuk, planshet yoki ekran ko'rinsa screen_copy yoki device_cheat
+    - person_swap faqat reference bilan solishtirganda ishonchli bo'lsa
+    - Agar rasmda yordam olish belgisi bo'lsa, hatto aniq bo'lmasa ham external_help ni yuqori ishonch bilan belgilang.
+    
+    ${referenceHint}
+    
+    Faqat JSON formatida qaytaring, hech qanday qo'shimcha so'z va belgilarsiz:
+    {
+      "violationDetected": boolean,
+      "violationType": "none" | "multiple_persons" | "phone" | "no_person" | "person_swap" | "device_cheat" | "external_help" | "reading_material" | "screen_copy" | "looking_away",
+      "confidence": number,
+      "reason": string,
+      "personDescription": string
+    }
+    
+    Imtihon paytida olingan ushbu kadrni tekshiring. Telefon, yordam, nusxa ko'chirish va odam almashishni qidir.`,
                                 },
-                            },
-                        ],
-                    },
-                ],
-                temperature: 0.1,
-            });
+                                {
+                                    type: "image_url",
+                                    image_url: {
+                                        url: normalizeImageUrl(photoBase64),
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                    temperature: 0.1,
+                });
+                content = response.choices[0].message.content || "{}";
+            }
 
-            let content = response.choices[0].message.content || "{}";
             require('fs').appendFileSync('vision-debug.log', `[${new Date().toISOString()}] RESP: ${content}\n`);
 
             content = content.replace(/```json\n?/g, "").replace(/```/g, "").trim();
-            const parsed = JSON.parse(content);
+            parsed = JSON.parse(content);
 
             const rawType = parsed.violationType || "none";
             const violationType = VALID_VIOLATION_TYPES.has(rawType)
@@ -203,9 +262,9 @@ Imtihon paytida olingan ushbu kadrni tekshiring. Telefon, yordam, nusxa ko'chiri
                 personDescription: parsed.personDescription || "",
                 isCritical: isCriticalType,
             };
-        } catch (error) {
-            console.error("❌ Groq Vision Error:", error);
-            require('fs').appendFileSync('vision-debug.log', `[${new Date().toISOString()}] ERR: ${error}\n`);
+        } catch (error: any) {
+            console.error("❌ Vision API Error:", error.message || error);
+            require('fs').appendFileSync('vision-debug.log', `[${new Date().toISOString()}] ERR: ${error.message || error}\n`);
             return {
                 violationDetected: false,
                 violationType: "none",
