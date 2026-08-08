@@ -101,6 +101,7 @@ export default function QuestionCard({
     const noFaceCountRef = useRef(0);
     const mediaPipeReadyRef = useRef(false);
     const objCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const groqCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -144,6 +145,7 @@ export default function QuestionCard({
         if (audioIntervalRef.current) clearInterval(audioIntervalRef.current);
         if (faceCheckIntervalRef.current) clearInterval(faceCheckIntervalRef.current);
         if (objCheckIntervalRef.current) clearInterval(objCheckIntervalRef.current);
+        if (groqCheckIntervalRef.current) clearInterval(groqCheckIntervalRef.current);
         if (faceDetectionRef.current) {
             try { faceDetectionRef.current.close(); } catch {}
             faceDetectionRef.current = null;
@@ -206,7 +208,6 @@ export default function QuestionCard({
                 if (detections.length === 0) {
                     noFaceCountRef.current += 1;
                     if (noFaceCountRef.current >= 2) {
-
                         triggerForceFail(
                             "Yuz aniqlanmadi — imtihon to'xtatildi.",
                             takeSnapshot(),
@@ -214,12 +215,6 @@ export default function QuestionCard({
                     } else {
                         setProctoringStatus("⚠️ Yuz ko'rinmayapti...");
                     }
-                } else if (detections.length >= 2) {
-                    noFaceCountRef.current = 0;
-                    triggerForceFail(
-                        "Kadrda bir nechta odam aniqlandi — imtihon to'xtatildi.",
-                        takeSnapshot(),
-                    );
                 } else {
                     noFaceCountRef.current = 0;
 
@@ -278,11 +273,11 @@ export default function QuestionCard({
 
     const checkObjects = useCallback(async () => {
         if (!isExamActive.current) return;
-        if (!cocoModelRef.current || !videoRef.current) return;
-        if (videoRef.current.videoWidth === 0) return;
+        if (!cocoModelRef.current || !videoRef.current || videoRef.current.videoWidth === 0) return;
         try {
+            // Min Score thresholdni 0.08 qilib pasaytiramiz, shunda u xira va uzoqdagi narsalarni ham qaytaradi
             const predictions: Array<{ class: string; score: number }> =
-                await cocoModelRef.current.detect(videoRef.current);
+                await cocoModelRef.current.detect(videoRef.current, 20, 0.08);
 
             if (predictions.length > 0) {
                 console.log("COCO detections:", predictions.map(p => `${p.class}(${(p.score * 100).toFixed(0)}%)`).join(", "));
@@ -291,18 +286,21 @@ export default function QuestionCard({
             const BANNED = ["cell phone", "book", "laptop", "tv", "remote"];
             const frame = takeSnapshot();
 
-            const persons = predictions.filter((p) => p.class === "person" && p.score > 0.6);
-            if (persons.length >= 2) {
-                triggerForceFail("Kadrda bir nechta odam aniqlandi — imtihon to'xtatildi.", frame);
-                return;
-            }
-
             for (const pred of predictions) {
-                if (BANNED.includes(pred.class) && pred.score > 0.30) {
+                let isBanned = false;
+                
+                // Telefon yoki qog'oz/daftar uchun sezgirlikni kuchaytiramiz
+                if ((pred.class === "cell phone" || pred.class === "book" || pred.class === "laptop") && pred.score > 0.08) {
+                    isBanned = true;
+                } else if (BANNED.includes(pred.class) && pred.score > 0.35) {
+                    isBanned = true;
+                }
+
+                if (isBanned) {
 
                     const label =
                         pred.class === "cell phone" || pred.class === "remote"
-                            ? "📱 Telefon"
+                            ? "📱 Telefon / Shubhali buyum"
                             : pred.class === "book" || pred.class === "laptop"
                             ? "📚 Kitob / Daftar"
                             : pred.class === "tv"
@@ -319,6 +317,40 @@ export default function QuestionCard({
             console.warn("COCO check error:", e);
         }
     }, [triggerForceFail]);
+
+    const checkGroqVision = useCallback(async () => {
+        if (!isExamActive.current) return;
+        const frame = takeSnapshot();
+        if (!frame) return;
+
+        try {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            const res = await fetch(`${API_BASE_URL}/api/v1/tests/verify-frame`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    photoBase64: frame,
+                    referenceDescription: "Talaba imtihon topshirmoqda"
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.violationDetected) {
+                    if (data.isCritical || data.violationType === "phone" || data.violationType === "reading_material") {
+                        triggerForceFail(`Qat'iy AI Nazorat: ${data.reason}`, frame);
+                    } else {
+                        registerViolation(`AI Nazorat: ${data.reason}`, frame);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("Groq Vision check error:", e);
+        }
+    }, [triggerForceFail, registerViolation]);
 
     const startAudioMonitoring = useCallback(async () => {
         if (!streamRef.current || audioContextRef.current) return;
@@ -430,6 +462,10 @@ export default function QuestionCard({
                     objCheckIntervalRef.current = setInterval(() => {
                         checkObjects();
                     }, 500);
+
+                    groqCheckIntervalRef.current = setInterval(() => {
+                        checkGroqVision();
+                    }, 20000); // 20 seconds
                 }, 2000);
             })
             .catch(() => triggerForceFail("Kamera/Mikrofonga ruxsat yo'q.", null));

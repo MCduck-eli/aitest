@@ -12,7 +12,7 @@
     const GROQ_MODEL = "llama-3.3-70b-versatile";
     const VISION_MODEL =
         process.env.GROQ_VISION_MODEL ??
-        "meta-llama/llama-4-scout-17b-16e-instruct";
+        "llama-3.2-11b-vision-preview";
 
     const CRITICAL_VIOLATIONS = new Set([
         "multiple_persons",
@@ -235,9 +235,15 @@ Imtihon paytida olingan ushbu kadrni tekshiring. Telefon, yordam, nusxa ko'chiri
                 response_format: { type: "json_object" },
             });
 
+            let content = response.choices[0].message.content || "{}";
+            const match = content.match(/\{[\s\S]*\}/);
+            if (match) {
+                content = match[0];
+            }
+
             return {
                 status: "success",
-                data: response.choices[0].message.content,
+                data: content,
             };
         } catch (error) {
             return {
@@ -326,10 +332,16 @@ JSON formatida qaytaring:
                 temperature: 0.65,
             });
 
-            const content = response.choices[0].message.content || '{"questions": []}';
+            let content = response.choices[0].message.content || '{"questions": []}';
+            const match = content.match(/\{[\s\S]*\}/);
+            if (match) {
+                content = match[0];
+            }
             const parsed = JSON.parse(content);
             return Array.isArray(parsed.questions) ? parsed.questions : [];
-        } catch (error) {
+        } catch (error: any) {
+            console.error("Error in generateQuestionsFromScript:", error);
+            require('fs').appendFileSync('ai-error.log', `[${new Date().toISOString()}] ERR (Script): ${error.message || error}\n`);
             return [];
         }
     };
@@ -363,7 +375,11 @@ JSON formatida qaytaring:
                 temperature: 0.1,
             });
 
-            const content = response.choices[0].message.content || '{"topics": []}';
+            let content = response.choices[0].message.content || '{"topics": []}';
+            const match = content.match(/\{[\s\S]*\}/);
+            if (match) {
+                content = match[0];
+            }
             const parsed = JSON.parse(content);
             return Array.isArray(parsed.topics) ? parsed.topics : [];
         } catch (error) {
@@ -420,8 +436,11 @@ Javobni faqat quyidagi JSON formatida qaytaring:
             temperature: 0.4,
         });
 
-        const content =
-            response.choices[0].message.content || '{"questions": []}';
+        let content = response.choices[0].message.content || '{"questions": []}';
+        const match = content.match(/\{[\s\S]*\}/);
+        if (match) {
+            content = match[0];
+        }
         const parsed = JSON.parse(content);
         const rawQuestions = Array.isArray(parsed.questions)
             ? parsed.questions
@@ -448,7 +467,9 @@ Javobni faqat quyidagi JSON formatida qaytaring:
                 correct: Number.isNaN(correct) ? 0 : correct,
             };
         });
-    } catch (error) {
+    } catch (error: any) {
+        console.error("Error in generateQuestionsByTopic:", error);
+        require('fs').appendFileSync('ai-error.log', `[${new Date().toISOString()}] ERR (Topic): ${error.message || error}\n`);
         return [];
     }
 };

@@ -8,10 +8,21 @@ interface AuthState {
     logout: () => void;
 }
 
+const getUserFromStorage = () => {
+    if (typeof window === 'undefined') return null;
+    const userStr = localStorage.getItem('user');
+    if (!userStr || userStr === 'undefined') return null;
+    try {
+        return JSON.parse(userStr);
+    } catch (e) {
+        return null;
+    }
+};
+
 export const useAuthStore = create<AuthState>((set) => ({
     token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
     refreshToken: typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null,
-    user: typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || 'null') : null,
+    user: getUserFromStorage(),
     setAuth: (token, refreshToken, user) => {
         localStorage.setItem('token', token);
         localStorage.setItem('refreshToken', refreshToken);
