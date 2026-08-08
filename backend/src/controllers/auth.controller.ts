@@ -261,9 +261,9 @@ export const login = async (
                 training_center_id: trainingCenterId,
                 is_active: true,
 
-                created_at: new Date().toISOString(),
+                created_at: new Date(),
 
-                updated_at: new Date().toISOString(),
+                updated_at: new Date(),
             };
 
             res.json({

@@ -118,7 +118,7 @@ export default function StudentLoginPage() {
                 return;
             }
 
-            setAuth(data.data.token, data.data.user);
+            setAuth(data.data.token, "", data.data.user);
             router.push("/exam");
         } catch (err) {
             setError(getTranslation(lang, "error_generic"));
