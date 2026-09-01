@@ -1316,15 +1316,27 @@ export const deleteUser = async (
 
         let result;
         if (req.user.role === "super_admin") {
-
-            result = await query(
-                `DELETE FROM users
-                 WHERE id = $1 AND role IN ('admin', 'teacher')
-                 RETURNING id`,
-                [req.params.id],
+            // Avval tekshiramiz: agar u admin bo'lsa, butun markazni o'chirish kerak
+            const userCheck = await query(
+                `SELECT role, training_center_id FROM users WHERE id = $1`,
+                [req.params.id]
             );
+            
+            if (userCheck.rows.length > 0 && userCheck.rows[0].role === 'admin' && userCheck.rows[0].training_center_id) {
+                // Admin o'chirilganda uning barcha malumotlari (training_center) kaskad tarzda o'chadi
+                result = await query(
+                    `DELETE FROM training_centers WHERE id = $1 RETURNING id`,
+                    [userCheck.rows[0].training_center_id]
+                );
+            } else {
+                result = await query(
+                    `DELETE FROM users
+                     WHERE id = $1 AND role IN ('admin', 'teacher')
+                     RETURNING id`,
+                    [req.params.id],
+                );
+            }
         } else {
-
             result = await query(
                 `DELETE FROM users
                  WHERE id = $1 AND training_center_id = $2 AND role != 'super_admin'
@@ -1372,9 +1384,9 @@ export const deleteAllAdmins = async (
             return;
         }
 
+        // Barcha adminlarni (va ularning markazlarini) o'chirish kaskad orqali amalga oshiriladi
         const result = await query(
-            `DELETE FROM users
-             WHERE role IN ('admin', 'teacher')
+            `DELETE FROM training_centers
              RETURNING id`,
         );
 
