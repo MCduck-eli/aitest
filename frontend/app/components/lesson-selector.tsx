@@ -157,6 +157,27 @@ export default function LessonSelector({
                                 </select>
                             </div>
                         )}
+
+                        {!hasTopics && currentScriptObj?.content && (
+                            <div className="space-y-2 mt-4">
+                                <label className="block text-sm font-medium text-slate-300">
+                                    {getTranslation(lang, 'ls_topic_label') || "Darslik matni"}
+                                </label>
+                                <div 
+                                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-5 text-slate-300 max-h-72 overflow-y-auto leading-relaxed text-sm shadow-inner"
+                                    dangerouslySetInnerHTML={{ 
+                                        __html: currentScriptObj.content
+                                            .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold text-slate-100 mt-4 mb-2">$1</h3>')
+                                            .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold text-white mt-5 mb-2">$1</h2>')
+                                            .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-white mt-6 mb-3">$1</h1>')
+                                            .replace(/\*\*(.*?)\*\*/gim, '<strong class="font-bold text-cyan-400">$1</strong>')
+                                            .replace(/\*(.*?)\*/gim, '<em class="italic text-slate-400">$1</em>')
+                                            .replace(/`(.*?)`/gim, '<code class="bg-slate-800 text-pink-400 px-1.5 py-0.5 rounded text-sm font-mono">$1</code>')
+                                            .replace(/\n/gim, '<br />')
+                                    }}
+                                />
+                            </div>
+                        )}
                     </div>
                 )}
 
