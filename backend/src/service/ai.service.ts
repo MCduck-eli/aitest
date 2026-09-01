@@ -399,31 +399,20 @@ JSON formatida qaytaring:
                 } else {
                     throw new Error("No valid API key found");
                 }
-            } catch (apiError) {
+            } catch (apiError: any) {
                 console.error("API error, falling back to mock questions:", apiError);
-                const topicName = selectedTopic ? selectedTopic : (subject || "IT texnologiyalari");
+                const topicName = selectedTopic ? selectedTopic : (subject || "Noma'lum mavzu");
                 content = JSON.stringify({
                     questions: [
                         {
-                            question_text: `"${topicName}" mavzusida eng muhim tushuncha qaysi?`,
+                            question_text: `⚠️ DIQQAT! Tizimdagi Sun'iy Intellekt (Gemini/Groq) API kaliti ishlamayapti yoki limiti tugagan. (Xatolik: ${apiError.message}). Shu sababli AI '${topicName}' mavzusini o'qib, haqiqiy savol tuza olmaydi!`,
                             question_type: "multiple_choice",
                             difficulty_level: "medium",
                             options: [
-                                { text: "Asosiy tushunchalarni noto'g'ri qo'llash", isCorrect: false },
-                                { text: "Mavzu asoslari va amaliyotni to'g'ri tushunish", isCorrect: true },
-                                { text: "Faqat nazariyani yodlash", isCorrect: false },
-                                { text: "Umuman boshqa mavzudagi qoidalar", isCorrect: false }
-                            ]
-                        },
-                        {
-                            question_text: `"${topicName}" bilan ishlashda qaysi usul eng samarali hisoblanadi?`,
-                            question_type: "multiple_choice",
-                            difficulty_level: "hard",
-                            options: [
-                                { text: "Eski va samarasiz metodlardan foydalanish", isCorrect: false },
-                                { text: "Mavzuga aloqador bo'lmagan usullar", isCorrect: false },
-                                { text: "Optimizatsiya qilingan eng to'g'ri yondashuv", isCorrect: true },
-                                { text: "Umuman foydalanmaslik", isCorrect: false }
+                                { text: "Tushundim, backenddagi .env faylida yaroqli API kalit (API_KEY) kiritishim kerak", isCorrect: true },
+                                { text: "Muammoni tushunmadim", isCorrect: false },
+                                { text: "Bu tasodifiy javob", isCorrect: false },
+                                { text: "Noto'g'ri", isCorrect: false }
                             ]
                         }
                     ]
