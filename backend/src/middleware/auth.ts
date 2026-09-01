@@ -24,6 +24,11 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         }
 
         const payload = verifyToken(token);
+        
+        // Agar bo'sh string kelsa, tozalaymiz (uuid xatoliklarini oldini olish uchun)
+        if (payload.trainingCenterId === "") {
+            payload.trainingCenterId = undefined;
+        }
 
         if (payload.role === 'super_admin' && !payload.trainingCenterId) {
             const centerResult = await query(
