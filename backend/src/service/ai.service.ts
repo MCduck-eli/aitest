@@ -10,7 +10,7 @@
         timeout: 30000,
     });
 
-    const GROQ_MODEL = "mixtral-8x7b-32768";
+    const GROQ_MODEL = "qwen/qwen3.8-27b";
     const VISION_MODEL =
         process.env.GROQ_VISION_MODEL ??
         "llama-3.2-11b-vision-preview";
@@ -291,7 +291,6 @@ Faqat JSON formatida qaytaring, hech qanday qo'shimcha so'z va belgilarsiz:
                         content: `Quyidagi imtihon tarixi bo'yicha baholash va tahlil qiling: ${JSON.stringify(examHistory)}`,
                     },
                 ],
-                response_format: { type: "json_object" },
             });
 
             let content = response.choices[0].message.content || "{}";
@@ -381,23 +380,33 @@ JSON formatida qaytaring:
             
             try {
                 if (process.env.GEMINI_API_KEY) {
-                    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-                    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-                    const result = await model.generateContent(`${promptText}\n\n${scriptInfo}\n\nTASODIFIYLIK KALITI: ${Math.random()}`);
-                    content = result.response.text() || '{"questions": []}';
-                } else if (process.env.GROQ_API_KEY) {
+                    try {
+                        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+                        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                        const result = await model.generateContent(`${promptText}\n\n${scriptInfo}\n\nTASODIFIYLIK KALITI: ${Math.random()}`);
+                        if (result && result.response && result.response.text()) {
+                            content = result.response.text();
+                        }
+                    } catch (geminiError: any) {
+                        console.error("Gemini API failed, attempting fallback to Groq...", geminiError.message);
+                    }
+                }
+                
+                // Agar Gemini ishlamasa yoki o'rnatilmagan bo'lsa, Groq orqali urinamiz
+                if (content === '{"questions": []}' && process.env.GROQ_API_KEY) {
                     const response = await groqClient.chat.completions.create({
                         model: GROQ_MODEL,
                         messages: [
                             { role: "system", content: promptText },
                             { role: "user", content: `${scriptInfo}\n\nTASODIFIYLIK KALITI: ${Math.random()}` },
                         ],
-                        response_format: { type: "json_object" },
                         temperature: 0.65,
                     });
                     content = response.choices[0].message.content || '{"questions": []}';
-                } else {
-                    throw new Error("No valid API key found");
+                }
+
+                if (content === '{"questions": []}') {
+                    throw new Error("Ikkala AI API ham natija qaytarmadi yoki xato berdi.");
                 }
             } catch (apiError: any) {
                 console.error("API error, falling back to mock questions:", apiError);
@@ -457,8 +466,7 @@ JSON formatida qaytaring:
                         content: `Dars skripti:\n${lessonScript}`,
                     },
                 ],
-                response_format: { type: "json_object" },
-                temperature: 0.1,
+                temperature: 0.7,
             });
 
             let content = response.choices[0].message.content || '{"topics": []}';
@@ -518,8 +526,7 @@ Javobni faqat quyidagi JSON formatida qaytaring:
                     content: `Quyidagi darslar o'tildi. Har bir darsning bilim kontentidan savol tuzing:\n\n${lessonDetails}\n\nTASODIFIYLIK KALITI: ${Math.random()}`,
                 },
             ],
-            response_format: { type: "json_object" },
-            temperature: 0.4,
+            temperature: 0.7,
         });
 
         let content = response.choices[0].message.content || '{"questions": []}';
