@@ -10,7 +10,7 @@
         timeout: 30000,
     });
 
-    const GROQ_MODEL = "llama-3.1-70b-versatile";
+    const GROQ_MODEL = "llama3-70b-8192";
     const VISION_MODEL =
         process.env.GROQ_VISION_MODEL ??
         "llama-3.2-11b-vision-preview";
