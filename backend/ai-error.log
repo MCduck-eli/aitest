@@ -1,3 +1,5 @@
 [2026-08-08T08:46:36.473Z] ERR (Script): 401 Invalid API Key
 [2026-08-08T12:37:17.674Z] ERR (Script): 401 Invalid API Key
 [2026-08-08T12:38:20.547Z] ERR (Script): 401 Invalid API Key
+[2026-09-01T12:50:54.481Z] ERR (Script): 404 The model `llama-3.3-70b-versatile` does not exist or you do not have access to it.
+[2026-09-01T12:51:14.680Z] ERR (Script): 404 The model `llama-3.3-70b-versatile` does not exist or you do not have access to it.
