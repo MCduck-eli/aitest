@@ -161,21 +161,25 @@ export default function LessonSelector({
                         {!hasTopics && currentScriptObj?.content && (
                             <div className="space-y-2 mt-4">
                                 <label className="block text-sm font-medium text-slate-300">
-                                    {getTranslation(lang, 'ls_topic_label') || "Darslik matni"}
+                                    {getTranslation(lang, 'ls_topic_label') || "Qaysi mavzugacha keldingiz?"}
                                 </label>
-                                <div 
-                                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-5 text-slate-300 max-h-72 overflow-y-auto leading-relaxed text-sm shadow-inner"
-                                    dangerouslySetInnerHTML={{ 
-                                        __html: currentScriptObj.content
-                                            .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold text-slate-100 mt-4 mb-2">$1</h3>')
-                                            .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold text-white mt-5 mb-2">$1</h2>')
-                                            .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-white mt-6 mb-3">$1</h1>')
-                                            .replace(/\*\*(.*?)\*\*/gim, '<strong class="font-bold text-cyan-400">$1</strong>')
-                                            .replace(/\*(.*?)\*/gim, '<em class="italic text-slate-400">$1</em>')
-                                            .replace(/`(.*?)`/gim, '<code class="bg-slate-800 text-pink-400 px-1.5 py-0.5 rounded text-sm font-mono">$1</code>')
-                                            .replace(/\n/gim, '<br />')
-                                    }}
-                                />
+                                <select
+                                    value={selectedTopic}
+                                    onChange={(e) => setSelectedTopic(e.target.value)}
+                                    disabled={loading}
+                                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-slate-300 focus:outline-none focus:border-cyan-500 transition-colors cursor-pointer disabled:opacity-50"
+                                >
+                                    <option value="">{getTranslation(lang, 'ls_all_topics')}</option>
+                                    {currentScriptObj.content
+                                        .split('\n')
+                                        .map(line => line.replace(/[*_#`]/g, '').trim()) // markdown belgilarni tozalash
+                                        .filter(line => line.length > 3) // juda qisqa qatorlarni olib tashlash
+                                        .map((line, idx) => (
+                                            <option key={idx} value={line}>
+                                                {line}
+                                            </option>
+                                    ))}
+                                </select>
                             </div>
                         )}
                     </div>
