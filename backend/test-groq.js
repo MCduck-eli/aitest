@@ -1,30 +1,14 @@
-require('dotenv').config();
-const OpenAI = require('openai');
-const groqClient = new OpenAI({
-    baseURL: "https://api.groq.com/openai/v1",
-    apiKey: process.env.GROQ_API_KEY,
-    timeout: 30000,
-});
+const Groq = require("groq-sdk");
+require("dotenv").config();
 
-async function run() {
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+async function main() {
     try {
-        const response = await groqClient.chat.completions.create({
-            model: "llama-3.3-70b-versatile",
-            messages: [
-                {
-                    role: "system",
-                    content: "Respond with JSON."
-                },
-                {
-                    role: "user",
-                    content: "Test"
-                }
-            ],
-            response_format: { type: "json_object" },
-        });
-        console.log("Success:", response.choices[0].message.content);
+        const models = await groq.models.list();
+        console.log(models.data.map(m => m.id).join("\n"));
     } catch (e) {
-        console.error("Error:", e);
+        console.error(e.message);
     }
 }
-run();
+main();
