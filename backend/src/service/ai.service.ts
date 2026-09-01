@@ -380,12 +380,12 @@ JSON formatida qaytaring:
             let content = '{"questions": []}';
             
             try {
-                if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.startsWith("AIzaSy")) {
+                if (process.env.GEMINI_API_KEY) {
                     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
                     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
                     const result = await model.generateContent(`${promptText}\n\n${scriptInfo}\n\nTASODIFIYLIK KALITI: ${Math.random()}`);
                     content = result.response.text() || '{"questions": []}';
-                } else {
+                } else if (process.env.GROQ_API_KEY) {
                     const response = await groqClient.chat.completions.create({
                         model: GROQ_MODEL,
                         messages: [
@@ -396,31 +396,34 @@ JSON formatida qaytaring:
                         temperature: 0.65,
                     });
                     content = response.choices[0].message.content || '{"questions": []}';
+                } else {
+                    throw new Error("No valid API key found");
                 }
             } catch (apiError) {
                 console.error("API error, falling back to mock questions:", apiError);
+                const topicName = selectedTopic ? selectedTopic : (subject || "IT texnologiyalari");
                 content = JSON.stringify({
                     questions: [
                         {
-                            question_text: "Dasturlashda o'zgaruvchi (variable) nima?",
+                            question_text: `"${topicName}" mavzusida eng muhim tushuncha qaysi?`,
                             question_type: "multiple_choice",
                             difficulty_level: "medium",
                             options: [
-                                { text: "Faqat raqamlarni saqlovchi quti", isCorrect: false },
-                                { text: "Ma'lumotlarni xotirada saqlash uchun nomlangan joy", isCorrect: true },
-                                { text: "Kompyuterni o'chiruvchi dastur", isCorrect: false },
-                                { text: "Faqat matn saqlaydigan xotira qismi", isCorrect: false }
+                                { text: "Asosiy tushunchalarni noto'g'ri qo'llash", isCorrect: false },
+                                { text: "Mavzu asoslari va amaliyotni to'g'ri tushunish", isCorrect: true },
+                                { text: "Faqat nazariyani yodlash", isCorrect: false },
+                                { text: "Umuman boshqa mavzudagi qoidalar", isCorrect: false }
                             ]
                         },
                         {
-                            question_text: "Qaysi biri frontend texnologiyasi hisoblanmaydi?",
+                            question_text: `"${topicName}" bilan ishlashda qaysi usul eng samarali hisoblanadi?`,
                             question_type: "multiple_choice",
-                            difficulty_level: "medium",
+                            difficulty_level: "hard",
                             options: [
-                                { text: "React", isCorrect: false },
-                                { text: "HTML", isCorrect: false },
-                                { text: "PostgreSQL", isCorrect: true },
-                                { text: "CSS", isCorrect: false }
+                                { text: "Eski va samarasiz metodlardan foydalanish", isCorrect: false },
+                                { text: "Mavzuga aloqador bo'lmagan usullar", isCorrect: false },
+                                { text: "Optimizatsiya qilingan eng to'g'ri yondashuv", isCorrect: true },
+                                { text: "Umuman foydalanmaslik", isCorrect: false }
                             ]
                         }
                     ]
